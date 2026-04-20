@@ -24,7 +24,7 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005
         with:
-          ruby-version: '3.3'
+          ruby-version: '3.1.1'
 
       - name: Run pre-check
         run: make pre-check
@@ -54,7 +54,7 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005
         with:
-          ruby-version: '3.3'
+          ruby-version: '3.1.1'
 
       - name: Install web dependencies
         working-directory: web
