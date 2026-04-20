@@ -1,0 +1,51 @@
+api_version: tars.connector/v1alpha1
+kind: connector
+metadata:
+  id: skill-source-main
+  name: skill-source
+  display_name: Skill Source Registry
+  vendor: tars
+  version: 1.0.0
+  description: External skill source for MCP skills and imported automation assets
+spec:
+  type: skill_source
+  protocol: http_index
+  capabilities:
+    - id: source.sync
+      action: import
+      read_only: true
+      scopes: ["skill.import"]
+      description: Sync skill metadata from external index
+    - id: source.package
+      action: export
+      read_only: true
+      scopes: ["skill.export"]
+      description: Import or export marketplace package
+  connection_form:
+    - key: base_url
+      label: Source URL
+      type: string
+      required: true
+      description: HTTP index or yum-like repository URL
+    - key: auth_token
+      label: Auth Token
+      type: secret
+      required: false
+      secret: true
+      description: Optional source token
+  import_export:
+    exportable: true
+    importable: true
+    formats: ["yaml", "json", "tar.gz"]
+config:
+  values:
+    base_url: https://skills.example.com/index.yaml
+    auth_token: ""
+compatibility:
+  tars_major_versions: ["1"]
+  upstream_major_versions: ["1"]
+  modes: ["managed", "imported"]
+marketplace:
+  category: marketplace
+  tags: ["mcp", "skill", "source", "registry"]
+  source: official

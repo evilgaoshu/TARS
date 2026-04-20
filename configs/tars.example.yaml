@@ -1,0 +1,81 @@
+server:
+  listen: ":8080"
+  public_base_url: "https://tars.example.com"
+
+postgres:
+  dsn: "postgres://user:pass@localhost:5432/tars?sslmode=disable"
+
+vector:
+  sqlite_path: "./data/tars_vec.db"
+
+model:
+  protocol: "openai_compatible"
+  base_url: "https://model-gateway.example.com/v1"
+  api_key: "${MODEL_API_KEY}"
+  model: "gpt-4o-mini"
+  timeout: "30s"
+
+reasoning:
+  prompts_config_path: "./configs/reasoning_prompts.example.yaml"
+  desensitization_config_path: "./configs/desensitization.example.yaml"
+  local_command_fallback_enabled: false
+
+ops_api:
+  enabled: false
+  listen: "127.0.0.1:8081"
+  bearer_token: "${OPS_API_TOKEN}"
+  trusted_proxy_cidrs: ["10.0.0.0/8"]
+  require_gateway_identity: true
+
+telegram:
+  bot_token: "${TELEGRAM_BOT_TOKEN}"
+  webhook_secret: "${TELEGRAM_WEBHOOK_SECRET}"
+  base_url: "https://api.telegram.org"
+  polling_enabled: false
+  poll_timeout: "30s"
+  poll_interval: "1s"
+
+vmalert:
+  webhook_secret: "${VMALERT_WEBHOOK_SECRET}"
+
+victoriametrics:
+  query_base_url: "https://vm.example.com/select/0/prometheus"
+  timeout: "15s"
+
+ssh:
+  user: "sre"
+  private_key_path: "/etc/tars/id_rsa"
+  connect_timeout: "10s"
+  command_timeout: "300s"
+  disable_host_key_checking: false
+  allowed_hosts: ["192.168.3.106"]
+  allowed_command_prefixes:
+    - "hostname"
+    - "uptime"
+    - "systemctl status"
+    - "systemctl is-active"
+  blocked_command_fragments:
+    - "rm -rf"
+    - "mkfs"
+    - "shutdown"
+
+execution_output:
+  max_persisted_bytes: 262144
+  chunk_bytes: 16384
+  retention: "168h"
+  spool_dir: "./data/execution_output"
+
+approval:
+  timeout: "15m"
+  config_path: "./configs/approvals.example.yaml"
+  critical_dual_approval: true
+
+authorization:
+  config_path: "./configs/authorization_policy.vnext.example.yaml"
+
+features:
+  rollout_mode: "diagnosis_only"
+  diagnosis_enabled: true
+  approval_enabled: false
+  execution_enabled: false
+  knowledge_ingest_enabled: false

@@ -1,0 +1,99 @@
+api_version: tars.marketplace/v1alpha1
+kind: skill_package
+metadata:
+  id: disk-space-incident
+  name: disk-space-incident
+  display_name: Disk Space Incident
+  version: 1.0.0
+  category: incident-response
+  vendor: tars
+  description: >
+    Official TARS incident skill for disk space alerts. It guides the planner to
+    collect filesystem capacity trends first, estimate exhaustion risk, then use
+    JumpServer/SSH only when host-level evidence is still required.
+spec:
+  type: incident_skill
+  triggers:
+    alerts:
+      - DiskSpaceLow
+      - DiskUsageHigh
+      - DiskWillFillSoon
+    intents:
+      - 磁盘空间不足
+      - 磁盘快满了
+      - disk space low
+      - disk usage high
+      - filesystem will fill
+  planner:
+    summary: Analyze disk capacity trend before host access, then narrow down growth source.
+    preferred_tools:
+      - metrics.query_range
+      - knowledge.search
+      - execution.run_command
+    steps:
+      - id: metrics_capacity
+        tool: metrics.query_range
+        required: true
+        reason: Check filesystem availability trend and current usage before executing commands.
+        params:
+          query: |
+            (
+              1 - (
+                node_filesystem_avail_bytes{fstype!="tmpfs",mountpoint!="/boot"}
+                /
+                node_filesystem_size_bytes{fstype!="tmpfs",mountpoint!="/boot"}
+              )
+            ) * 100
+          window: 1h
+          step: 5m
+          format: chart_png
+      - id: metrics_forecast
+        tool: metrics.query_range
+        required: false
+        reason: Estimate whether usage is still increasing and whether the filesystem may fill soon.
+        params:
+          query: |
+            predict_linear(
+              node_filesystem_avail_bytes{fstype!="tmpfs",mountpoint!="/boot"}[1h],
+              4 * 3600
+            )
+          window: 1h
+          step: 5m
+          format: json
+      - id: knowledge_disk
+        tool: knowledge.search
+        required: false
+        reason: Reuse prior guidance for disk cleanup and incident handling.
+        params:
+          query: disk space cleanup filesystem growth log retention
+      - id: host_probe
+        tool: execution.run_command
+        required: false
+        reason: Only run after tool evidence suggests host-level inspection is still required.
+        params:
+          command: |
+            df -h &&
+            du -xhd1 /var /tmp /home 2>/dev/null | sort -hr | head -n 20 &&
+            journalctl --disk-usage 2>/dev/null || true
+        approval:
+          default: require_approval
+  outputs:
+    expected_summary_sections:
+      - current_usage
+      - growth_trend
+      - estimated_exhaustion
+      - likely_growth_source
+      - next_action
+    attachments:
+      - metrics-range.png
+      - metrics-range.json
+  governance:
+    execution_policy: approval_required_for_cleanup
+    read_only_first: true
+    connector_preference:
+      metrics:
+        - victoriametrics-main
+        - prometheus-main
+      execution:
+        - jumpserver-main
+        - ssh

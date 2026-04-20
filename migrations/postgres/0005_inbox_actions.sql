@@ -1,0 +1,2 @@
+ALTER TABLE inbox_messages
+ADD COLUMN IF NOT EXISTS actions JSONB NOT NULL DEFAULT '[]'::jsonb;

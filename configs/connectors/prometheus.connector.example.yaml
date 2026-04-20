@@ -1,0 +1,51 @@
+api_version: tars.connector/v1alpha1
+kind: connector
+metadata:
+  id: prometheus-main
+  name: prometheus
+  display_name: Prometheus Main
+  vendor: prometheus
+  version: 1.0.0
+  description: Prometheus metrics provider for alert context and trend queries
+spec:
+  type: metrics
+  protocol: prometheus_http
+  capabilities:
+    - id: query.instant
+      action: query
+      read_only: true
+      scopes: ["metrics.read"]
+      description: Run instant PromQL query
+    - id: query.range
+      action: query
+      read_only: true
+      scopes: ["metrics.read"]
+      description: Run range PromQL query
+  connection_form:
+    - key: base_url
+      label: Base URL
+      type: string
+      required: true
+      description: Prometheus HTTP API root
+    - key: bearer_token
+      label: Bearer Token
+      type: secret
+      required: false
+      secret: true
+      description: Optional API token
+  import_export:
+    exportable: true
+    importable: true
+    formats: ["yaml", "json", "tar.gz"]
+config:
+  values:
+    base_url: http://127.0.0.1:9090
+    bearer_token: ""
+compatibility:
+  tars_major_versions: ["1"]
+  upstream_major_versions: ["2"]
+  modes: ["managed", "imported"]
+marketplace:
+  category: observability
+  tags: ["metrics", "prometheus", "read-only"]
+  source: official

@@ -1,0 +1,39 @@
+groups:
+  - name: tars-self-observability
+    interval: 1m
+    rules:
+      - alert: TarsTelegramSendErrors
+        expr: increase(tars_channel_messages_total{channel="telegram",result="error"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: tars
+        annotations:
+          summary: "TARS Telegram message send errors detected"
+
+      - alert: TarsOutboxFailures
+        expr: increase(tars_outbox_events_total{result="failed"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: tars
+        annotations:
+          summary: "TARS outbox failures detected"
+
+      - alert: TarsApprovalTimeouts
+        expr: increase(tars_approval_timeouts_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: tars
+        annotations:
+          summary: "TARS approval requests timed out"
+
+      - alert: TarsGarbageCollectorErrors
+        expr: increase(tars_gc_runs_total{result="error"}[30m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: tars
+        annotations:
+          summary: "TARS garbage collector reported errors"

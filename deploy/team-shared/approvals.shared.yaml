@@ -1,0 +1,18 @@
+approval:
+  default_timeout: 15m
+  prohibit_self_approval: true
+  routing:
+    service_owner:
+      sshd:
+        - "445308292"
+      tars:
+        - "445308292"
+    oncall_group:
+      default:
+        - "445308292"
+  execution:
+    command_allowlist:
+      sshd:
+        - "systemctl status sshd"
+        - "systemctl is-active sshd"
+        - "systemctl restart sshd"

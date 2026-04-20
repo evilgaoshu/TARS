@@ -1,0 +1,51 @@
+api_version: tars.connector/v1alpha1
+kind: connector
+metadata:
+  id: victoriametrics-main
+  name: victoriametrics
+  display_name: VictoriaMetrics Main
+  vendor: victoriametrics
+  version: 1.0.0
+  description: VictoriaMetrics metrics provider for alert context, instant queries, and trend drill-down
+spec:
+  type: metrics
+  protocol: victoriametrics_http
+  capabilities:
+    - id: query.instant
+      action: query
+      read_only: true
+      scopes: ["metrics.read"]
+      description: Run instant PromQL-compatible query
+    - id: query.range
+      action: query
+      read_only: true
+      scopes: ["metrics.read"]
+      description: Run range PromQL-compatible query
+  connection_form:
+    - key: base_url
+      label: Base URL
+      type: string
+      required: true
+      description: VictoriaMetrics HTTP API root
+    - key: bearer_token
+      label: Bearer Token
+      type: secret
+      required: false
+      secret: true
+      description: Optional API token
+  import_export:
+    exportable: true
+    importable: true
+    formats: ["yaml", "json", "tar.gz"]
+config:
+  values:
+    base_url: http://127.0.0.1:8428
+    bearer_token: ""
+compatibility:
+  tars_major_versions: ["1"]
+  upstream_major_versions: ["1"]
+  modes: ["managed", "imported"]
+marketplace:
+  category: observability
+  tags: ["metrics", "victoriametrics", "promql", "read-only"]
+  source: official

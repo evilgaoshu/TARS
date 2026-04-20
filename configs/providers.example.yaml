@@ -1,0 +1,23 @@
+providers:
+  primary:
+    provider_id: "primary-openrouter"
+    model: "openai/gpt-4.1-mini"
+
+  assist:
+    provider_id: "assist-lmstudio"
+    model: "qwen/qwen3-4b-2507"
+
+  entries:
+    - id: "primary-openrouter"
+      vendor: "openrouter"
+      protocol: "openrouter"
+      base_url: "https://openrouter.ai/api/v1"
+      api_key: "replace-with-openrouter-api-key"
+      enabled: true
+
+    - id: "assist-lmstudio"
+      vendor: "lmstudio"
+      protocol: "lmstudio"
+      base_url: "http://192.168.1.132:1234"
+      enabled: true
+

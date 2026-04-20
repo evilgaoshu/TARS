@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  vm:
+    image: victoriametrics/victoria-metrics:v1.111.0
+    command:
+      - "--storageDataPath=/storage"
+      - "--httpListenAddr=:8428"
+    network_mode: host
+    volumes:
+      - vm-storage:/storage
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    command:
+      - "--path.rootfs=/host"
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - "/:/host:ro,rslave"
+
+  vmagent:
+    image: victoriametrics/vmagent:v1.111.0
+    command:
+      - "-promscrape.config=/etc/vmagent/promscrape.yml"
+      - "-remoteWrite.url=http://127.0.0.1:8428/api/v1/write"
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - vm
+      - node-exporter
+    volumes:
+      - ./vmagent.yml:/etc/vmagent/promscrape.yml:ro
+
+  vmalert:
+    image: victoriametrics/vmalert:v1.111.0
+    command:
+      - "-datasource.url=http://127.0.0.1:8428"
+      - "-evaluationInterval=15s"
+      - "-rule=/etc/vmalert/rules.yml"
+      - "-notifier.url=${TARS_VMALERT_WEBHOOK_URL:-http://127.0.0.1:18080/api/v1/webhooks/vmalert}"
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - vm
+      - vmagent
+    volumes:
+      - ./vmalert-rules.yml:/etc/vmalert/rules.yml:ro
+
+volumes:
+  vm-storage: {}

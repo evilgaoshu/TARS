@@ -1,0 +1,14 @@
+.git
+.DS_Store
+.codex-tmp
+.gemini
+.playwright-cli
+.superpowers
+bin
+tmp
+dist
+web/node_modules
+web/dist
+web/playwright-report
+web/test-results
+*.log

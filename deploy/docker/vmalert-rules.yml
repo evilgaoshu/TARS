@@ -1,0 +1,13 @@
+groups:
+  - name: tars-smoke
+    interval: 15s
+    rules:
+      - alert: TarsSmokeNodeUp
+        expr: up{job="node"} >= 1
+        for: 0m
+        labels:
+          severity: critical
+          service: sshd
+          instance: 192.168.3.106
+        annotations:
+          summary: "tars smoke node exporter up"

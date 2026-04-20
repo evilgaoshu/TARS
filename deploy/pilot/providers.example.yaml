@@ -1,0 +1,22 @@
+providers:
+  primary:
+    provider_id: "lmstudio-local"
+    model: "qwen/qwen3-4b-2507"
+
+  assist:
+    provider_id: "gemini-backup"
+    model: "gemini-flash-lite-latest"
+
+  entries:
+    - id: "lmstudio-local"
+      vendor: "lmstudio"
+      protocol: "lmstudio"
+      base_url: "http://192.168.1.132:1234"
+      enabled: true
+
+    - id: "gemini-backup"
+      vendor: "gemini"
+      protocol: "gemini"
+      base_url: "https://generativelanguage.googleapis.com/v1beta"
+      api_key: "replace-with-gemini-api-key"
+      enabled: true

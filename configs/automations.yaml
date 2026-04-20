@@ -1,0 +1,20 @@
+automations:
+  jobs:
+    - id: demo-disk-skill
+      display_name: Demo Disk Skill Sweep
+      description: Periodically runs the bundled disk-space skill in a safe read-only mode.
+      type: skill
+      target_ref: disk-space-incident
+      schedule: "@every 30m"
+      enabled: false
+      owner: platform-ops
+      runtime_mode: managed
+      timeout_seconds: 30
+      retry_max_attempts: 1
+      retry_initial_backoff: 2s
+      skill:
+        skill_id: disk-space-incident
+        context:
+          host: host-1
+          service: api
+          summary: periodic disk verification

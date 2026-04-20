@@ -1,0 +1,16 @@
+{
+  "update_id": 910001,
+  "callback_query": {
+    "id": "golden-path-approve-1",
+    "data": "approve:{{EXECUTION_ID}}",
+    "from": {
+      "id": 42,
+      "username": "golden-approver"
+    },
+    "message": {
+      "chat": {
+        "id": "{{CHAT_ID}}"
+      }
+    }
+  }
+}

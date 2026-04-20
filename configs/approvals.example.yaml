@@ -1,0 +1,23 @@
+approval:
+  default_timeout: 15m
+  prohibit_self_approval: true
+  routing:
+    service_owner:
+      web:
+        - "u_alice"
+        - "u_bob"
+      payment:
+        - "u_charlie"
+    oncall_group:
+      default:
+        - "u_sre_1"
+        - "u_sre_2"
+  execution:
+    command_allowlist:
+      sshd:
+        - "systemctl restart sshd"
+        - "systemctl status sshd"
+        - "systemctl is-active sshd"
+      web:
+        - "systemctl restart nginx"
+        - "systemctl status nginx"

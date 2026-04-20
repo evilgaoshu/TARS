@@ -1,0 +1,15 @@
+automations:
+  jobs:
+    - id: golden-inspection-victoriametrics
+      display_name: "定时巡检 - VictoriaMetrics 健康检查"
+      description: "每5分钟查询一次 VictoriaMetrics 实例健康指标（up 指标），结果送入 Inbox"
+      type: connector_capability
+      target_ref: victoriametrics-main/query.instant
+      schedule: "*/5 * * * *"
+      enabled: true
+      owner: scheduler
+      connector_capability:
+        connector_id: victoriametrics-main
+        capability_id: query.instant
+        params:
+          query: "up"

@@ -1,0 +1,149 @@
+connectors:
+  entries:
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: prometheus-main
+        name: prometheus
+        display_name: Prometheus Main
+        vendor: prometheus
+        version: 1.0.0
+        description: Prometheus metrics provider for alert context and trend queries
+      spec:
+        type: metrics
+        protocol: prometheus_http
+        capabilities:
+          - id: query.instant
+            action: query
+            read_only: true
+            scopes: ["metrics.read"]
+          - id: query.range
+            action: query
+            read_only: true
+            scopes: ["metrics.read"]
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: bearer_token
+            label: Bearer Token
+            type: secret
+            required: false
+            secret: true
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json", "tar.gz"]
+      config:
+        values:
+          base_url: http://127.0.0.1:9090
+          bearer_token: ""
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["2"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: observability
+        tags: ["metrics", "prometheus"]
+        source: official
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: victoriametrics-main
+        name: victoriametrics
+        display_name: VictoriaMetrics Main
+        vendor: victoriametrics
+        version: 1.0.0
+        description: VictoriaMetrics metrics provider for alert context and trend queries
+      spec:
+        type: metrics
+        protocol: victoriametrics_http
+        capabilities:
+          - id: query.instant
+            action: query
+            read_only: true
+            scopes: ["metrics.read"]
+          - id: query.range
+            action: query
+            read_only: true
+            scopes: ["metrics.read"]
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: bearer_token
+            label: Bearer Token
+            type: secret
+            required: false
+            secret: true
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json", "tar.gz"]
+      config:
+        values:
+          base_url: http://127.0.0.1:8428
+          bearer_token: ""
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["1"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: observability
+        tags: ["metrics", "victoriametrics", "promql"]
+        source: official
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: jumpserver-main
+        name: jumpserver
+        display_name: JumpServer Main
+        vendor: jumpserver
+        version: 1.0.0
+        description: Managed execution provider through JumpServer
+      spec:
+        type: execution
+        protocol: jumpserver_api
+        capabilities:
+          - id: host.read
+            action: query
+            read_only: true
+            scopes: ["asset.read"]
+          - id: command.execute
+            action: execute
+            read_only: false
+            scopes: ["execution.approved"]
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: access_key
+            label: Access Key
+            type: secret
+            required: true
+            secret: true
+          - key: secret_key
+            label: Secret Key
+            type: secret
+            required: true
+            secret: true
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json", "tar.gz"]
+      config:
+        values:
+          base_url: https://jumpserver.example.com
+          access_key: ""
+          secret_key: ""
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["3"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: execution
+        tags: ["jumpserver", "approval"]
+        source: official

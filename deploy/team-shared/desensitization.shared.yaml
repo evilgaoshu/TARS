@@ -1,0 +1,50 @@
+desensitization:
+  enabled: true
+
+  secrets:
+    key_names:
+      - password
+      - passwd
+      - token
+      - secret
+      - api_key
+    query_key_names:
+      - access_token
+      - refresh_token
+      - token
+      - secret
+      - api_key
+    additional_patterns:
+      - "corp-[A-Z0-9]{6}"
+    redact_bearer: true
+    redact_basic_auth_url: true
+    redact_sk_tokens: true
+
+  placeholders:
+    host_key_fragments:
+      - host
+      - hostname
+      - instance
+      - node
+      - address
+    path_key_fragments:
+      - path
+      - file
+      - filename
+      - dir
+      - directory
+    replace_inline_ip: true
+    replace_inline_host: true
+    replace_inline_path: true
+
+  rehydration:
+    host: true
+    ip: true
+    path: true
+
+  local_llm_assist:
+    enabled: false
+    provider: "lmstudio"
+    base_url: "http://192.168.1.132:1234"
+    model: "qwen/qwen3-4b-2507"
+    mode: "detect_only"

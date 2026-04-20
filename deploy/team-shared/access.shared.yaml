@@ -1,0 +1,72 @@
+access:
+  users:
+    - user_id: shared-local-admin
+      username: shared-admin
+      display_name: Shared Local Admin
+      email: shared-admin@example.com
+      status: active
+      source: local_password
+      password_hash: REPLACE_WITH_BCRYPT_PASSWORD_HASH
+      password_login_enabled: true
+      challenge_required: true
+      mfa_enabled: true
+      mfa_method: totp
+      totp_secret: REPLACE_WITH_TOTP_SECRET
+      roles:
+        - platform_admin
+  auth_providers:
+    - id: local_token
+      type: local_token
+      name: Local Token / Break Glass
+      enabled: true
+      client_secret: REPLACE_WITH_BREAKGLASS_TOKEN
+      default_roles:
+        - platform_admin
+    - id: local_password
+      type: local_password
+      name: Local Password
+      enabled: true
+      password_min_length: 8
+      require_challenge: true
+      challenge_channel: builtin
+      challenge_ttl_seconds: 300
+      challenge_code_length: 6
+      require_mfa: true
+      session_ttl_seconds: 43200
+      default_roles:
+        - platform_admin
+    - id: dex-local
+      type: oidc
+      name: Dex Shared OIDC
+      enabled: true
+      issuer_url: http://192.168.3.100:15556/dex
+      client_id: tars-shared
+      client_secret: REPLACE_WITH_DEX_CLIENT_SECRET
+      redirect_path: /api/v1/auth/callback/dex-local
+      success_redirect: http://192.168.3.100:8081/login
+      user_id_field: sub
+      username_field: preferred_username
+      display_name_field: name
+      email_field: email
+      session_ttl_seconds: 43200
+      scopes:
+        - openid
+        - profile
+        - email
+      default_roles:
+        - viewer
+      allow_jit: true
+
+  channels:
+    - id: telegram-main
+      type: telegram
+      name: Telegram Main
+      target: "445308292"
+      enabled: true
+      linked_users:
+        - ops-admin
+      capabilities:
+        - chat.receive
+        - chat.send
+        - alert.dispatch
+        - approval.dispatch

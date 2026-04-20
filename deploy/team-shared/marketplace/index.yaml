@@ -1,0 +1,14 @@
+api_version: tars.marketplace/v1alpha1
+kind: skill_index
+metadata:
+  name: team-shared-skill-index
+  generated_at: 2026-03-21T00:00:00Z
+items:
+  - id: disk-space-incident
+    name: disk-space-incident
+    display_name: Disk Space Incident
+    version: 1.0.0
+    category: incident-response
+    source: local
+    description: Official TARS incident skill for disk space alerts.
+    package_path: ./disk-space-incident.package.yaml

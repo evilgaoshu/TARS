@@ -1,0 +1,21 @@
+issuer: http://${TARS_HOST:-localhost}:15556/dex
+storage:
+  type: memory
+web:
+  http: 0.0.0.0:5556
+telemetry:
+  http: 0.0.0.0:5558
+oauth2:
+  skipApprovalScreen: true
+enablePasswordDB: true
+staticClients:
+  - id: tars-shared
+    name: TARS Shared
+    secret: REPLACE_WITH_DEX_CLIENT_SECRET
+    redirectURIs:
+      - http://${TARS_HOST:-localhost}:8081/api/v1/auth/callback/dex-local
+staticPasswords:
+  - email: tars-demo@example.com
+    hash: "REPLACE_WITH_BCRYPT_PASSWORD_HASH"
+    username: tars-demo
+    userID: d0a5f91a-4b1f-4a62-94d2-5f9d1d8c0b11

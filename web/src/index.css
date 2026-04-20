@@ -1,0 +1,513 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Geist font removed due to 404 on CDN. Using system stack for reliability. */
+
+:root {
+  /* Core Color System - Dark Mode (Default) */
+  --bg-base: #0a0c10;
+  --bg-surface: rgba(13, 17, 23, 0.8);
+  --bg-surface-solid: #0d1117;
+  --bg-surface-hover: rgba(22, 27, 34, 0.95);
+  
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  
+  --primary: #f2b84b;
+  --primary-hover: #ffcf7a;
+  --primary-glow: rgba(242, 184, 75, 0.15);
+  
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --info: #388bfd;
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  --focus-ring: 0 0 0 2px rgba(242, 184, 75, 0.3);
+
+  --sidebar-width: 280px;
+  --header-height: 56px;
+
+  /* Shadcn UI Overrides - Dark */
+  --background: 220 15% 5%;
+  --foreground: 210 20% 98%;
+  --card: 222 15% 8%;
+  --card-foreground: 210 20% 98%;
+  --popover: 222 15% 5%;
+  --popover-foreground: 210 20% 98%;
+  --primary-shadcn: 38 92% 61%;
+  --primary-foreground: 222 15% 5%;
+  --secondary: 222 15% 12%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 222 15% 12%;
+  --muted-foreground: 215 15% 65%;
+  --accent: 222 15% 15%;
+  --accent-foreground: 210 20% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 222 15% 12%;
+  --input: 222 15% 12%;
+  --ring: 38 92% 61%;
+  --radius: 0.8rem;
+
+  /* Card and Item variables */
+  --card-bg: rgba(13, 17, 23, 0.95);
+  --card-hover-bg: rgba(22, 27, 34, 1);
+  --card-shadow: 0 10px 40px -10px rgba(0,0,0,0.5), 0 0 1px 1px rgba(255,255,255,0.05);
+  --item-bg: rgba(255, 255, 255, 0.03);
+  --item-hover-bg: rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(24px);
+}
+
+[data-theme="light"] {
+  --bg-base: #f4f6fa;
+  --bg-surface: rgba(255, 255, 255, 0.85);
+  --bg-surface-solid: #ffffff;
+  --bg-surface-hover: rgba(248, 250, 252, 0.9);
+  
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  
+  --primary: #d97706;
+  --primary-hover: #b45309;
+  --primary-glow: rgba(217, 119, 6, 0.15);
+  
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #0ea5e9;
+  
+  --border-color: rgba(15, 23, 42, 0.08);
+  --glass-border: 1px solid rgba(15, 23, 42, 0.08);
+  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  --focus-ring: 0 0 0 2px rgba(217, 119, 6, 0.2);
+
+  /* Shadcn UI Variables - Light */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary-shadcn: 38 92% 45%; /* TARS Light Amber */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 38 92% 45%;
+
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-hover-bg: rgba(255, 255, 255, 0.98);
+  --card-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 8px 24px -4px rgba(15, 23, 42, 0.03);
+  --item-bg: rgba(15, 23, 42, 0.02);
+  --item-hover-bg: rgba(15, 23, 42, 0.04);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="dark"] body, :root:not([data-theme="light"]) body {
+  background:
+    radial-gradient(circle at top left, rgba(242, 184, 75, 0.14), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(109, 198, 214, 0.12), transparent 24%),
+    linear-gradient(180deg, #101820 0%, #0c1318 100%);
+}
+
+[data-theme="light"] body {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(217, 119, 6, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(2, 132, 199, 0.06) 0px, transparent 50%);
+}
+
+/* Sidebar refinement */
+[data-theme="light"] aside {
+  background: #ffffff;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+}
+
+/* Color Utilities — REMOVED in FE-29 (conflicted with Tailwind utilities)
+ * These previously defined .text-primary, .bg-primary etc. using raw CSS vars,
+ * which clashed with Tailwind's .text-primary (using HSL). Now Tailwind owns
+ * all utility classes; use var(--primary) only in custom CSS / inline styles.
+ */
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--bg-surface-solid);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+}
+
+[data-theme="dark"] .glass-panel {
+  background: rgba(24, 36, 47, 0.98);
+}
+
+[data-theme="light"] .glass-panel {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.glass-card {
+  background: var(--bg-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card:hover {
+  background: var(--bg-surface-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Premium inner shine and shimmer effect */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    115deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.03) 40%, 
+    rgba(255, 255, 255, 0.08) 50%, 
+    rgba(255, 255, 255, 0.03) 60%, 
+    transparent 100%
+  );
+  pointer-events: none;
+  transition: 0.5s;
+}
+
+[data-theme="light"] .glass-card::before {
+  background: linear-gradient(
+    115deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.1) 40%, 
+    rgba(255, 255, 255, 0.4) 50%, 
+    rgba(255, 255, 255, 0.1) 60%, 
+    transparent 100%
+  );
+}
+
+.glass-card:hover {
+  background: var(--card-hover-bg);
+}
+
+/* Interactive variant — use this class for cards that should have full hover lift effect */
+.glass-card-interactive:hover {
+  transform: translateY(-4px);
+  background: var(--card-hover-bg);
+  border-color: var(--primary);
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
+}
+
+.glass-card-interactive:hover::before {
+  left: 100%;
+  transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] .glass-card-interactive:hover {
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.1), 0 0 15px var(--primary-glow);
+}
+
+/* Specific fix for status rows and items in light mode */
+[data-theme="light"] .bg-white\/5 { background-color: rgba(0, 0, 0, 0.02) !important; }
+[data-theme="light"] .bg-white\/10 { background-color: rgba(0, 0, 0, 0.04) !important; }
+[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.025) !important; }
+[data-theme="light"] .bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.015) !important; }
+[data-theme="light"] .bg-black\/40 { background-color: rgba(0, 0, 0, 0.03) !important; color: var(--text-primary) !important; }
+[data-theme="light"] .bg-black\/20 { background-color: rgba(0, 0, 0, 0.02) !important; }
+
+[data-theme="light"] .hover\:bg-white\/5:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+[data-theme="light"] .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+
+[data-theme="light"] .border-white\/5 { border-color: rgba(0, 0, 0, 0.05) !important; }
+[data-theme="light"] .border-white\/10 { border-color: rgba(0, 0, 0, 0.08) !important; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* Tags & Badges — REMOVED in FE-29
+ * .badge-success/warning/danger/info/muted migrated to shadcn Badge component
+ * with TARS semantic variants (see badge.tsx). Base .badge class also removed;
+ * use <Badge variant="success"> instead of <span className="badge badge-success">.
+ */
+
+/* Registry table child selectors (base styles inlined via Tailwind on <table>) */
+.registry-table thead tr {
+  border-bottom: var(--glass-border);
+}
+
+.registry-table th {
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.registry-table td {
+  padding: 1rem;
+  vertical-align: top;
+}
+
+.registry-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.registry-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Markdown Typography & Layout */
+.markdown-body {
+  font-family: inherit;
+  line-height: 1.7;
+}
+
+.markdown-body h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+.markdown-body h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+.markdown-body h2::before { content: ""; width: 4px; height: 1.5rem; background: var(--primary); border-radius: 2px; }
+.markdown-body h3 { font-size: 1.25rem; font-weight: 600; margin-top: 2rem; }
+.markdown-body p { margin-bottom: 1.25rem; color: var(--text-secondary); }
+.markdown-body ul, .markdown-body ol { margin-bottom: 1.25rem; padding-left: 1.5rem; }
+.markdown-body li { margin-bottom: 0.5rem; color: var(--text-secondary); }
+
+.markdown-body blockquote {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: rgba(13, 185, 215, 0.05); /* var(--info) with 0.05 opacity */
+  border-left: 4px solid var(--info);
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .markdown-body blockquote { background: rgba(109, 198, 214, 0.05); }
+[data-theme="light"] .markdown-body blockquote { background: rgba(2, 132, 199, 0.05); }
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 2rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.markdown-body th {
+  background: var(--bg-surface-solid);
+  padding: 1rem;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.markdown-body td {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.markdown-body code {
+  background: rgba(var(--primary), 0.1);
+  color: var(--primary);
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+}
+
+.markdown-body pre {
+  margin: 2rem 0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  background: #0d1117 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+[data-theme="light"] .markdown-body pre {
+  background: #f1f5f9 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  color: #e6edf3;
+  padding: 0;
+}
+
+[data-theme="light"] .markdown-body pre code {
+  color: #0f172a;
+}
+
+@media (max-width: 1160px) {
+  .registry-split-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Command Palette (cmdk) Styles */
+[cmdk-root] {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+}
+
+[cmdk-input] {
+  font-family: inherit;
+  width: 100%;
+  font-size: 16px;
+  padding: 12px;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+[cmdk-input]::placeholder {
+  color: var(--text-muted);
+}
+
+[cmdk-list] {
+  height: min(450px, var(--cmdk-list-height));
+  overflow: auto;
+  overscroll-behavior: contain;
+  transition: 100ms ease;
+  transition-property: height;
+}
+
+[cmdk-group-heading] {
+  user-select: none;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 12px 12px 8px;
+  display: flex;
+  align-items: center;
+}
+
+[cmdk-item] {
+  content-visibility: auto;
+  cursor: pointer;
+  height: auto;
+  min-height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  user-select: none;
+  will-change: background, color;
+  margin-bottom: 2px;
+}
+
+[cmdk-item][aria-selected='true'] {
+  background: var(--primary);
+  color: #1b1304;
+}
+
+[cmdk-item][aria-selected='true'] [cmdk-item-icon] {
+  color: #1b1304;
+}
+
+[cmdk-item][aria-selected='true'] .text-text-muted {
+  color: rgba(27, 19, 4, 0.7);
+}
+
+[cmdk-item-icon] {
+  color: var(--primary);
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[cmdk-empty] {
+  font-size: 14px;
+  padding: 32px;
+  white-space: pre-wrap;
+  color: var(--text-muted);
+  text-align: center;
+}

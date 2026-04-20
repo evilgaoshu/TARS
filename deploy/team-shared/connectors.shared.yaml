@@ -1,0 +1,454 @@
+# ==============================================================================
+# TARS Connectors — Shared Configuration
+# ==============================================================================
+#
+# First-class connectors (near-term priorities, always at top):
+#   1. SSH (ssh_native)          — direct host command execution via SSH
+#   2. VictoriaMetrics (victoriametrics_http) — metrics queries (PromQL)
+#   3. VictoriaLogs (victorialogs_http)       — log queries (LogsQL)
+#      Demo env: https://play-vmlogs.victoriametrics.com/
+#      Credentials: none required for play env; for private deployments
+#      add bearer_token via secret_ref (no plaintext secrets in config).
+#
+# Secondary connectors:
+#   - Prometheus, JumpServer, MCP, skill_source
+#
+# Secret handling:
+#   SSH password/private key material MUST be stored through SSH Credential
+#   Custody (`TARS_SECRET_CUSTODY_KEY` + PostgreSQL), then referenced by
+#   credential_id. Other tokens still use secret_refs; no plaintext secrets here.
+# ==============================================================================
+connectors:
+  entries:
+    # ─── FIRST-CLASS: SSH ────────────────────────────────────────────────────
+    # Direct SSH-based host command execution. Credentials (private_key,
+    # password) must be created through SSH Credential Custody and referenced
+    # by credential_id; no plaintext values.
+    # For managed SSH via JumpServer, use jumpserver-main below.
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: ssh-main
+        name: ssh
+        display_name: SSH Main
+        vendor: openssh
+        version: 1.0.0
+        description: Direct SSH host command execution connector. Configure target host and credentials via secret_refs.
+      spec:
+        type: execution
+        protocol: ssh_native
+        capabilities:
+          - id: command.execute
+            action: execute
+            read_only: false
+            invocable: true
+            scopes: ["execution.approved"]
+            description: Execute a command on the target host via SSH
+          - id: host.verify
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["execution.read"]
+            description: Verify SSH connectivity to the target host
+        connection_form:
+          - key: host
+            label: Host
+            type: string
+            required: true
+            description: Hostname or IP address of the target SSH server
+          - key: port
+            label: Port
+            type: string
+            required: false
+            default: "22"
+            description: SSH port (default 22)
+          - key: username
+            label: Username
+            type: string
+            required: true
+            description: SSH login username
+          - key: credential_id
+            label: Credential ID
+            type: string
+            required: true
+            description: SSH Credential Custody ID; secret material is encrypted separately
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json"]
+      config:
+        values:
+          host: REPLACE_WITH_TARGET_HOST
+          port: "22"
+          username: REPLACE_WITH_USERNAME
+          credential_id: REPLACE_WITH_SSH_CREDENTIAL_ID
+        secret_refs: {}
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["8", "9"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: execution
+        tags: ["ssh", "execution", "host", "command"]
+        source: official
+
+    # ─── FIRST-CLASS: VictoriaMetrics ───────────────────────────────────────
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: victoriametrics-main
+        name: victoriametrics
+        display_name: VictoriaMetrics Main
+        vendor: victoriametrics
+        version: 1.0.0
+        description: Shared test VictoriaMetrics runtime
+      spec:
+        type: metrics
+        protocol: victoriametrics_http
+        capabilities:
+          - id: query.instant
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["metrics.read"]
+          - id: query.range
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["metrics.read"]
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: bearer_token
+            label: Bearer Token
+            type: secret
+            required: false
+            secret: true
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json", "tar.gz"]
+      config:
+        values:
+          base_url: http://127.0.0.1:8428
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["1"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: observability
+        tags: ["metrics", "victoriametrics", "read-only"]
+        source: official
+
+    # ─── FIRST-CLASS: VictoriaLogs ──────────────────────────────────────────
+    # VictoriaLogs is a first-class log query connector (protocol: victorialogs_http).
+    # Shared lab default: local VictoriaLogs on 127.0.0.1:9428.
+    # Demo env: https://play-vmlogs.victoriametrics.com/ (no auth required).
+    # For other private deployments: update base_url and add bearer_token via secret_ref.
+    # No credentials are stored in plaintext — private deployments must use:
+    #   secret_refs:
+    #     bearer_token: connector/victorialogs-main/bearer_token
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: victorialogs-main
+        name: victorialogs
+        display_name: VictoriaLogs Main
+        vendor: victoriametrics
+        version: 1.0.0
+        description: Shared test VictoriaLogs runtime
+      spec:
+        type: logs
+        protocol: victorialogs_http
+        capabilities:
+          - id: logs.query
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["logs.read"]
+            description: Query logs using LogsQL expressions
+          - id: victorialogs.query
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["logs.read"]
+            description: Alias for logs.query — LogsQL log search
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+            description: VictoriaLogs base URL, e.g. http://127.0.0.1:9428 or https://play-vmlogs.victoriametrics.com
+          - key: bearer_token
+            label: Bearer Token
+            type: secret
+            required: false
+            secret: true
+            description: Optional bearer token for authenticated private instances
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json"]
+      config:
+        values:
+          # Shared lab default — no authentication required.
+          # Replace with your private VictoriaLogs URL for other deployments.
+          base_url: http://127.0.0.1:9428
+        # Uncomment for private deployments:
+        # secret_refs:
+        #   bearer_token: connector/victorialogs-main/bearer_token
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["1"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: observability
+        tags: ["logs", "victorialogs", "logsql", "read-only"]
+        source: official
+
+    # ─── SECONDARY: Prometheus ───────────────────────────────────────────────
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      disabled: true
+      metadata:
+        id: prometheus-main
+        name: prometheus
+        display_name: Prometheus Main
+        vendor: prometheus
+        version: 1.0.0
+        description: Shared test Prometheus runtime
+      spec:
+        type: metrics
+        protocol: prometheus_http
+        capabilities:
+          - id: query.instant
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["metrics.read"]
+          - id: query.range
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["metrics.read"]
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: bearer_token
+            label: Bearer Token
+            type: secret
+            required: false
+            secret: true
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json", "tar.gz"]
+      config:
+        values:
+          base_url: http://127.0.0.1:9090
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["2"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: observability
+        tags: ["metrics", "prometheus", "read-only"]
+        source: official
+
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: jumpserver-main
+        name: jumpserver
+        display_name: JumpServer Main
+        vendor: jumpserver
+        version: 1.0.0
+        description: Managed execution provider using JumpServer
+      spec:
+        type: execution
+        protocol: jumpserver_api
+        capabilities:
+          - id: host.read
+            action: query
+            read_only: true
+            scopes: ["asset.read"]
+          - id: command.execute
+            action: execute
+            read_only: false
+            scopes: ["execution.approved"]
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: access_key
+            label: Access Key
+            type: secret
+            required: true
+            secret: true
+          - key: secret_key
+            label: Secret Key
+            type: secret
+            required: true
+            secret: true
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json", "tar.gz"]
+      config:
+        values:
+          base_url: https://jumpserver.example.com
+        secret_refs:
+          access_key: connector/jumpserver-main/access_key
+          secret_key: connector/jumpserver-main/secret_key
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["3"]
+        modes: ["managed", "imported"]
+      marketplace:
+        category: execution
+        tags: ["jumpserver", "approval", "execution"]
+        source: official
+
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: observability-main
+        name: observability-main
+        display_name: Observability Main
+        vendor: tars
+        version: 1.0.0
+        description: Real observability query connector backed by shared vmalert APIs
+      spec:
+        type: observability
+        protocol: observability_http
+        capabilities:
+          - id: observability.query
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["observability.read"]
+            description: Query observability data (logs, traces, events)
+        connection_form:
+          - key: base_url
+            label: Base URL
+            type: string
+            required: true
+          - key: query_path
+            label: Default Query Path
+            type: string
+            required: false
+          - key: alerts_path
+            label: Alerts Path
+            type: string
+            required: false
+          - key: rules_path
+            label: Rules Path
+            type: string
+            required: false
+          - key: health_path
+            label: Health Path
+            type: string
+            required: false
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json"]
+      config:
+        values:
+          base_url: http://127.0.0.1:8880
+          query_path: /api/v1/alerts
+          alerts_path: /api/v1/alerts
+          rules_path: /api/v1/rules
+          health_path: /api/v1/rules
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["1"]
+        modes: ["managed"]
+      marketplace:
+        category: observability
+        tags: ["observability", "logs", "read-only"]
+        source: official
+
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: delivery-main
+        name: delivery-main
+        display_name: Delivery Main
+        vendor: tars
+        version: 1.0.0
+        description: Real delivery query connector backed by public GitHub commits APIs
+      spec:
+        type: delivery
+        protocol: delivery_github
+        capabilities:
+          - id: delivery.query
+            action: query
+            read_only: true
+            invocable: true
+            scopes: ["delivery.read"]
+            description: Query delivery pipeline status and history
+        connection_form:
+          - key: repo_url
+            label: Repo URL
+            type: string
+            required: true
+          - key: branch
+            label: Branch
+            type: string
+            required: false
+        import_export:
+          exportable: true
+          importable: true
+          formats: ["yaml", "json"]
+      config:
+        values:
+          repo_url: https://github.com/VictoriaMetrics/VictoriaMetrics.git
+          branch: master
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["1"]
+        modes: ["managed"]
+      marketplace:
+        category: delivery
+        tags: ["delivery", "git", "read-only"]
+        source: official
+
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: skill-source-main
+        name: skill-source
+        display_name: Skill Source Main
+        vendor: tars
+        version: 1.0.0
+        description: Shared test skill source connector for capability approval checks
+      spec:
+        type: skill_source
+        protocol: http_index
+        capabilities:
+          - id: source.sync
+            action: import
+            read_only: false
+            invocable: true
+            scopes: ["skill.import"]
+            description: Sync skill metadata from remote source
+        import_export:
+          exportable: false
+          importable: false
+      config:
+        values:
+          base_url: file://REPLACE_WITH_REMOTE_SHARED_DIR/marketplace/index.yaml
+      compatibility:
+        tars_major_versions: ["1"]
+        upstream_major_versions: ["1"]
+        modes: ["managed"]
+      marketplace:
+        category: automation
+        tags: ["skill", "source", "approval"]
+        source: official

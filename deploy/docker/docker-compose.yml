@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tars
+      POSTGRES_USER: tars
+      POSTGRES_PASSWORD: tars
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  tars:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: ${TARS_IMAGE:-tars-local:latest}
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      TARS_SERVER_LISTEN: "0.0.0.0:8081"
+      TARS_SERVER_PUBLIC_BASE_URL: "http://${TARS_HOST:-localhost}:8081"
+      TARS_OPS_API_ENABLED: "true"
+      TARS_OPS_API_TOKEN: "${TARS_OPS_API_TOKEN:?set TARS_OPS_API_TOKEN before starting docker compose}"
+      TARS_POSTGRES_DSN: "postgres://tars:tars@postgres:5432/tars?sslmode=disable"
+      TARS_ROLLOUT_MODE: "knowledge_on"
+    volumes:
+      - tars-data:/root/tars-data
+      - tars-execution-output:/root/tars-execution-output
+    depends_on:
+      - postgres
+
+volumes:
+  postgres-data: {}
+  tars-data: {}
+  tars-execution-output: {}

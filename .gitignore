@@ -1,0 +1,60 @@
+# Local agent / browser state
+/.codex-tmp/
+/.claude/
+/.gemini/
+/.playwright-cli/
+/.superpowers/
+/.alma/
+/.alma-snapshots/
+
+# Agent-generated planning docs (not canonical project docs)
+/docs/superpowers/
+
+# Local review artifacts
+/screenshots/
+
+# Local shared-test secrets and real secret files
+# (commit only *.example versions; real filled-in versions stay local)
+/deploy/team-shared/*.local.env
+/deploy/team-shared/*.private.env
+/deploy/team-shared/shared-test.env
+/deploy/team-shared/secrets.shared.yaml
+
+# Build output
+/tars
+/tars-*
+/bin/
+/build/
+/dist/
+
+# Runtime data
+/data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+*.out
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# Go
+/coverage.out
+/tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Web
+/web/node_modules/
+/web/dist/
+/web/playwright-report/
+/web/test-results/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+.alma-snapshots

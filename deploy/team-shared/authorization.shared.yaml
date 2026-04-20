@@ -1,0 +1,44 @@
+authorization:
+  defaults:
+    whitelist_action: direct_execute
+    blacklist_action: suggest_only
+    unmatched_action: require_approval
+
+  hard_deny:
+    ssh_command:
+      - "rm -rf /"
+      - "mkfs*"
+      - "dd if=/dev/zero*"
+
+  ssh_command:
+    normalize_whitespace: true
+    whitelist:
+      - "hostname"
+      - "uptime*"
+      - "cat /proc/loadavg"
+      - "free -m*"
+      - "free -h*"
+      - "df -h*"
+      - "ss -lntp*"
+      - "ps aux*"
+      - "systemctl status *"
+      - "systemctl is-active *"
+      - "journalctl -u *"
+      - "curl -fsS https://api.ipify.org*"
+      - "ip link show*"
+      - "cat /sys/class/net/*/address*"
+    blacklist:
+      - "systemctl restart *"
+      - "systemctl stop *"
+      - "reboot*"
+      - "shutdown*"
+      - "iptables *"
+    overrides:
+      - id: "sshd-restart-with-approval"
+        services:
+          - "sshd"
+        hosts:
+          - "192.168.3.100"
+        command_globs:
+          - "systemctl restart sshd*"
+        action: require_approval

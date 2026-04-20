@@ -1,0 +1,18 @@
+{
+  "status": "firing",
+  "alerts": [
+    {
+      "labels": {
+        "alertname": "HighCPU",
+        "instance": "host-3",
+        "host": "host-3",
+        "service": "api",
+        "severity": "critical",
+        "telegram_target": "-1001001"
+      },
+      "annotations": {
+        "summary": "golden path smoke: cpu too high"
+      }
+    }
+  ]
+}

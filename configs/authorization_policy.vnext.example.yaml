@@ -1,0 +1,87 @@
+# Design-only example for the next authorization policy model.
+# The current runtime does NOT load this file yet.
+
+authorization:
+  defaults:
+    whitelist_action: direct_execute
+    blacklist_action: suggest_only
+    unmatched_action: require_approval
+
+  hard_deny:
+    ssh_command:
+      - "rm -rf /"
+      - "mkfs*"
+      - "dd if=/dev/zero*"
+    mcp_skill:
+      - "shell.exec_root*"
+
+  ssh_command:
+    normalize_whitespace: true
+    whitelist:
+      - "hostname"
+      - "uptime"
+      - "cat /proc/loadavg"
+      - "df -h*"
+      - "free -m*"
+      - "systemctl status *"
+      - "systemctl is-active *"
+      - "journalctl -u *"
+      - "curl -fsS https://api.ipify.org*"
+    blacklist:
+      - "systemctl restart *"
+      - "systemctl stop *"
+      - "reboot*"
+      - "shutdown*"
+      - "iptables *"
+    overrides:
+      - id: "sshd-restart-with-approval"
+        services:
+          - "sshd"
+        hosts:
+          - "192.168.3.*"
+          - "prod-*"
+        command_globs:
+          - "systemctl restart sshd*"
+        action: require_approval
+        approval_route: service_owner
+        approval_timeout: 15m
+      - id: "web-nginx-restart-with-approval"
+        services:
+          - "web*"
+        command_globs:
+          - "systemctl restart nginx*"
+        action: require_approval
+        approval_route: oncall_group
+        approval_timeout: 15m
+      - id: "maintenance-reboot-with-approval"
+        services:
+          - "maintenance"
+        command_globs:
+          - "reboot*"
+        action: require_approval
+        note: "Override blacklist default during approved maintenance windows"
+
+  mcp_skill:
+    whitelist:
+      - "victoriametrics.query_*"
+      - "grafana.read_*"
+      - "kubernetes.get_*"
+    blacklist:
+      - "terraform.destroy*"
+      - "github.delete_*"
+      - "shell.exec_*"
+    overrides:
+      - id: "github-merge-with-approval"
+        server_globs:
+          - "github*"
+        skill_globs:
+          - "github.merge_*"
+          - "pr.merge"
+        action: require_approval
+        approval_route: service_owner
+      - id: "prod-k8s-readonly-direct"
+        server_globs:
+          - "k8s-prod"
+        skill_globs:
+          - "kubectl.rollout_status*"
+        action: direct_execute
