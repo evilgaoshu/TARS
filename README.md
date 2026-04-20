@@ -1,5 +1,8 @@
 # TARS
 
+> TARS v1 baseline: 值班排障闭环助手。
+> 当前仓库是可发布 baseline，源码、文档、CI 脚本和 `.example` 配置模板可提交；真实环境变量、共享机密钥、构建产物、运行数据和 agent state 不应进入 Git。
+
 TARS 是一个面向值班 SRE / 运维团队的 AIOps MVP。
 
 它当前最想解决的不是“做一个通用 AI 运维平台”，而是一个更窄、更痛的问题：
@@ -30,6 +33,43 @@ TARS 当前聚焦这条黄金路径：
 4. 执行完成后，结果和审计自动回传，而不是靠人补记录
 
 这才是当前版本最该追的止痛药价值。
+
+## 当前状态
+
+- 代码形态：Go 后端 + React 19 Web Console + PostgreSQL 运行时配置与工作流状态
+- 产品主线：`/sessions` 和 `/executions` 优先服务值班排障，而不是泛化 Dashboard
+- 诊断策略：默认 evidence-first，先看 metrics / logs / traces / 发布变更证据，再进入 SSH 或执行审批
+- 安全边界：高危命令必须走审批；真实 secret 只通过运行时注入或本地 ignored 文件维护
+- 发布状态：本地质量门已固化，GitHub Actions 只跑 CI baseline，不访问共享机或真实部署凭据
+
+## 一眼看懂
+
+```text
+Alert / Telegram / Web request
+        |
+        v
+Session intake
+        |
+        v
+Evidence-first tool plan
+  metrics -> logs -> traces / observability -> release evidence -> SSH only when needed
+        |
+        v
+Diagnosis, risk, next action
+        |
+        v
+Approval-gated execution
+        |
+        v
+Observation, audit trail, knowledge capture
+```
+
+TARS 的第一屏应该回答值班人真正关心的四件事：
+
+- 当前判断是什么
+- 证据在哪里
+- 风险有多大
+- 下一步该做什么
 
 ## 适合什么团队
 
@@ -80,6 +120,8 @@ TARS 当前**不**想做这些事情：
 
 ## 快速开始
 
+### 先读什么
+
 如果你想判断 TARS 现在适不适合你的团队，建议按这个顺序阅读：
 
 1. 当前主线与开发入口：[docs/operations/current_high_priority_workstreams.md](docs/operations/current_high_priority_workstreams.md)
@@ -91,24 +133,92 @@ TARS 当前**不**想做这些事情：
 7. 用户手册：[docs/guides/user-guide.md](docs/guides/user-guide.md)
 8. 部署手册：[docs/guides/deployment-guide.md](docs/guides/deployment-guide.md)
 
-本地常用命令：
+### 环境要求
+
+- Go `1.25`
+- Node.js `20.19+` 或 `22.12+`
+- npm
+- Ruby，用于 OpenAPI 校验脚本
+- Docker，可选，仅在本地容器或共享部署链路中需要
+
+### 干净 checkout 后的最小验证
 
 ```sh
+git clone https://github.com/evilgaoshu/TARS.git
+cd TARS
+
+make web-install
+make secret-scan
 make pre-check
-make full-check
-make deploy-sync
-make smoke-remote
-make live-validate
-bash scripts/run_golden_path_replay.sh
+make check-mvp
+```
+
+`make check-mvp` 会执行 Go tests、core coverage、Go build、OpenAPI 校验、Web lint 和 Web build。
+
+如果你刚 clone，先跑 `make web-install`，因为 `check-mvp` 假设 `web/node_modules` 已存在。
+
+### 常用质量门
+
+```sh
+make web-install
+make secret-scan
+make pre-check
+make security-regression
+make check-mvp
+cd web && npm run test:unit
+make static-demo-build
 ```
 
 推荐执行顺序：
 
+- `make secret-scan`：扫描 publishable non-test tree，确保没有真实密钥进入可提交集合
 - `make pre-check`：L0 快速预检，适合每次改动后立即运行
+- `make security-regression`：权限、审批、token、越权访问专项回归
+- `make check-mvp`：L1 MVP 严格门禁，合并或 push 前必跑
+- `cd web && npm run test:unit`：完整前端单测
+- `make static-demo-build`：静态演示构建，适合 GitHub Pages / demo artifact 验证
 - `make full-check`：L1 标准本地回归，包含 `check_mvp` 和 `linux/amd64` 交叉编译
+
+### 共享环境验证
+
+共享测试机默认是 `192.168.3.100`。这些命令会访问远端服务或共享机：
+
+```sh
+make deploy-sync
+make deploy
+make smoke-remote
+make live-validate
+make live-validate-smoke
+make web-smoke
+```
+
 - `make deploy-sync`：仅部署到共享环境，不自动验证
 - `make deploy`：共享环境完整闭环，默认串起 `deploy -> smoke-remote -> live-validate`
 - `make web-smoke`：Playwright 控制面 smoke，默认指向本地开发测试机 `http://192.168.3.100:8081`
+- `make smoke-remote`：共享环境 health / readiness / hygiene
+- `make live-validate`：tool-plan、metrics、approval、deny、observability、delivery 的 live validation
+
+共享环境 token 不应该写进仓库。脚本会优先使用当前 shell 的显式 token；本地没有 token 时，符合条件的共享机脚本会从远端 canonical env 读取。详细说明见 [docs/operations/shared_lab_192.168.3.100.md](docs/operations/shared_lab_192.168.3.100.md)。
+
+## 配置与 Secret 边界
+
+仓库只提交模板和占位值：
+
+- `configs/*.example.yaml`
+- `deploy/pilot/*.example`
+- `deploy/team-shared/shared-test.env.example`
+- `deploy/team-shared/secrets.shared.yaml.example`
+
+不要提交这些内容：
+
+- `.env`、`.env.*`
+- `deploy/team-shared/shared-test.env`
+- `deploy/team-shared/secrets.shared.yaml`
+- 私钥、真实 API key、Bot token、Ops token、数据库密码
+- `bin/`、`dist/`、`web/dist/`、`web/node_modules/`、`data/`
+- agent state，例如 `.claude/`、`.codex-tmp/`、`.gemini/`、`.playwright-cli/`、`.superpowers/`、`.alma/`
+
+首次配置请从 `.example` 复制到本地 ignored 文件，再填入真实值。不要反向把本地真实配置覆盖回仓库模板。
 
 ## 当前已经具备的核心能力
 
@@ -118,6 +228,17 @@ bash scripts/run_golden_path_replay.sh
 - `sessions / executions / audit / knowledge / outbox` 已统一分页协议
 - `sessions / executions` 已优先展示结论、风险、下一步与通知原因
 - 试点交付包已包含 `run_golden_path_replay.sh` 和官方 replay fixture
+
+## Web Console 入口
+
+当前 Web Console 的默认叙事已经收口到值班排障：
+
+- `/sessions`：默认入口，作为 incident queue
+- `/sessions/:id`：诊断首页，优先展示结论、证据、风险、下一步
+- `/executions`：审批和执行队列，默认 triage 排序
+- `/runtime-checks`：初始化完成后的运行体检
+- `/runtime`：运行态 Dashboard，退到支撑面
+- `/connectors`、`/ops`、`/identity`：后台治理和运行配置
 
 ## 仓库包含什么
 
@@ -183,3 +304,17 @@ web/                   Web Console 源码
 - `specs/` 只放开发者 / 架构 / 平台规范文档
 - `project/` 只放 PRD、技术设计、任务与执行跟踪
 - `web/dist`、`web/node_modules`、运行时日志和数据库文件都不应提交
+
+## GitHub 发布前检查
+
+首次 push 或每次发布前，至少确认：
+
+```sh
+git status --short
+make secret-scan
+make security-regression
+make check-mvp
+cd web && npm run test:unit
+```
+
+GitHub Actions 只应依赖可公开的 CI 输入，不应访问共享机 SSH、真实 token 或部署环境。分支保护、required checks、密钥轮换窗口和首次 baseline 签字见 [docs/operations/github_migration_prep_runbook.md](docs/operations/github_migration_prep_runbook.md)。
