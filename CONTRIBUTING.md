@@ -26,12 +26,14 @@
 
 | 工具 | 版本 | 用途 |
 |------|------|------|
-| Go | 1.22+ | 后端开发 |
-| Node.js | 18+ | 前端开发 |
-| PostgreSQL | 14+ | 数据库 |
+| Go | 1.25 | 后端开发 |
+| Node.js | 20.19+ 或 22.12+ | 前端开发 |
+| npm | 与 Node.js 配套 | 前端依赖安装 |
+| PostgreSQL | 15+ | 数据库 |
 | SQLite | 3+ | 向量存储 |
 | Make | - | 构建工具 |
-| Docker | 20+ | 容器化部署 |
+| Ruby | - | OpenAPI 校验脚本 |
+| Docker | 可选 | 本地容器或部署链路 |
 
 ### 1.2 克隆代码
 
@@ -47,7 +49,7 @@ cd TARS
 go mod download
 
 # 前端依赖
-cd web && npm install
+cd web && npm ci
 ```
 
 ### 1.4 配置开发环境

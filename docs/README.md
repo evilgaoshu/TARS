@@ -23,6 +23,7 @@
 - [guides/README.md](./guides/README.md) - 用户、管理员、部署、故障排查
 - [reference/README.md](./reference/README.md) - API、配置、Schema、部署基线
 - [operations/README.md](./operations/README.md) - 当前主线、共享环境、试点、GitHub、验收
+- [README-notes.md](./README-notes.md) - README 承接页，放首页不适合展开的运行与验证入口
 - [reports/README.md](./reports/README.md) - 历史报告与专项记录
 - 开发者规范索引：[../specs/00-specs-index.md](../specs/00-specs-index.md)
 
