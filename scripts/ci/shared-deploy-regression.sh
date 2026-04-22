@@ -140,6 +140,13 @@ test_shared_lab_verification_docs_and_template_exist() {
     fail "verification evidence template should capture mobile screenshot evidence"
 }
 
+test_shared_remote_service_restart_sets_canonical_workdir() {
+  local helper_path="${ROOT_DIR}/scripts/lib/shared_remote_service.sh"
+
+  grep -q 'cd "${shared_dir}"' "${helper_path}" || \
+    fail "shared_remote_service_restart should cd into the canonical shared dir before launching the binary"
+}
+
 test_deploy_normalizes_local_placeholder_before_remote_fallback() {
   local deploy_path="${ROOT_DIR}/scripts/deploy_team_shared.sh"
 
@@ -545,6 +552,7 @@ test_sync_only_uses_local_token_override
 test_check_shared_lab_script_exists_and_is_executable
 test_check_shared_lab_script_enforces_canonical_runtime_and_endpoints
 test_shared_lab_verification_docs_and_template_exist
+test_shared_remote_service_restart_sets_canonical_workdir
 test_deploy_normalizes_local_placeholder_before_remote_fallback
 test_smoke_scripts_normalize_placeholder_before_remote_fallback
 test_tool_plan_live_validate_requires_monitoring_first_tools

@@ -79,6 +79,8 @@ set -a
 source "${env_file}"
 set +a
 
+cd "${shared_dir}"
+
 nohup "${binary_path}" >"${log_path}" 2>&1 </dev/null &
 pid=$!
 printf '%s\n' "${pid}" >"${pid_file}"
