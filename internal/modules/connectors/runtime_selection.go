@@ -3,12 +3,14 @@ package connectors
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
 var ErrConnectorDisabled = errors.New("connector is disabled")
 var ErrConnectorIncompatible = errors.New("connector is incompatible with current TARS runtime")
 var ErrConnectorRuntimeUnsupported = errors.New("connector runtime is unsupported")
+var ErrConnectorInvalidConfig = errors.New("connector config is invalid")
 
 func ValidateRuntimeManifest(entry Manifest, expectedType string, requestedProtocol string, supportedProtocols map[string]struct{}) error {
 	if strings.TrimSpace(expectedType) != "" && strings.TrimSpace(entry.Spec.Type) != strings.TrimSpace(expectedType) {
@@ -29,6 +31,90 @@ func ValidateRuntimeManifest(entry Manifest, expectedType string, requestedProto
 		if _, ok := supportedProtocols[runtimeProtocol]; !ok {
 			return fmt.Errorf("%w: protocol %s", ErrConnectorRuntimeUnsupported, runtimeProtocol)
 		}
+	}
+	return nil
+}
+
+func ValidateRuntimeConfig(entry Manifest, runtimeProtocol string) error {
+	missingFields := make([]string, 0, 2)
+	seenMissing := make(map[string]struct{})
+	addMissing := func(label string) {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			return
+		}
+		if _, ok := seenMissing[label]; ok {
+			return
+		}
+		seenMissing[label] = struct{}{}
+		missingFields = append(missingFields, label)
+	}
+	for _, field := range entry.Spec.ConnectionForm {
+		if !field.Required || strings.TrimSpace(field.Key) == "" {
+			continue
+		}
+		key := strings.TrimSpace(field.Key)
+		if field.Secret {
+			if strings.TrimSpace(entry.Config.SecretRefs[key]) == "" && strings.TrimSpace(entry.Config.Values[key]) == "" {
+				addMissing(firstNonEmpty(strings.TrimSpace(field.Label), key))
+			}
+			continue
+		}
+		if strings.TrimSpace(entry.Config.Values[key]) == "" {
+			addMissing(firstNonEmpty(strings.TrimSpace(field.Label), key))
+		}
+	}
+
+	protocol := strings.TrimSpace(runtimeProtocol)
+	if protocol == "" {
+		protocol = strings.TrimSpace(entry.Spec.Protocol)
+	}
+	if !requiresStrictRuntimeConfigValidation(protocol) {
+		return nil
+	}
+
+	switch protocol {
+	case "ssh_native", "ssh_shell":
+		if strings.TrimSpace(entry.Config.Values["host"]) == "" {
+			addMissing("Host")
+		}
+		if strings.TrimSpace(entry.Config.Values["credential_id"]) == "" && strings.TrimSpace(entry.Config.SecretRefs["credential_id"]) == "" {
+			addMissing("Credential ID")
+		}
+	case "victoriametrics_http", "victorialogs_http", "prometheus_http", "jumpserver_api":
+		baseURL := strings.TrimSpace(entry.Config.Values["base_url"])
+		if baseURL == "" {
+			addMissing("Base URL")
+		} else if err := validateHTTPBaseURL(baseURL); err != nil {
+			return fmt.Errorf("%w: %v", ErrConnectorInvalidConfig, err)
+		}
+	}
+
+	if len(missingFields) > 0 {
+		return fmt.Errorf("%w: missing required fields: %s", ErrConnectorInvalidConfig, joinNonEmpty(missingFields, ", "))
+	}
+	return nil
+}
+
+func requiresStrictRuntimeConfigValidation(protocol string) bool {
+	switch strings.TrimSpace(protocol) {
+	case "ssh_native", "victoriametrics_http", "victorialogs_http":
+		return true
+	default:
+		return false
+	}
+}
+
+func validateHTTPBaseURL(raw string) error {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return fmt.Errorf("base_url is invalid: %w", err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("base_url must start with http:// or https://")
+	}
+	if strings.TrimSpace(parsed.Host) == "" {
+		return fmt.Errorf("base_url is invalid: host is required")
 	}
 	return nil
 }

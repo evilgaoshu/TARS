@@ -95,6 +95,51 @@ func TestResolveRuntimeManifestValidateRuntimeManifestAndExecutionMode(t *testin
 			supported: map[string]struct{}{"jumpserver_api": {}},
 		},
 	}
+	configValidationCases := []struct {
+		name    string
+		m       Manifest
+		proto   string
+		wantErr error
+	}{
+		{
+			name: "missing metrics base_url",
+			m: func() Manifest {
+				m := victoriaMetrics
+				m.Spec.ConnectionForm = []Field{{Key: "base_url", Label: "Base URL", Required: true}}
+				m.Config = RuntimeConfig{Values: map[string]string{"base_url": ""}}
+				return m
+			}(),
+			proto:   "victoriametrics_http",
+			wantErr: ErrConnectorInvalidConfig,
+		},
+		{
+			name: "invalid metrics base_url",
+			m: func() Manifest {
+				m := victoriaMetrics
+				m.Spec.ConnectionForm = []Field{{Key: "base_url", Label: "Base URL", Required: true}}
+				m.Config = RuntimeConfig{Values: map[string]string{"base_url": "http://[::1"}}
+				return m
+			}(),
+			proto:   "victoriametrics_http",
+			wantErr: ErrConnectorInvalidConfig,
+		},
+		{
+			name: "missing ssh credential",
+			m: func() Manifest {
+				m := ssh
+				m.Spec.Protocol = "ssh_native"
+				m.Spec.ConnectionForm = []Field{
+					{Key: "host", Label: "Host", Required: true},
+					{Key: "username", Label: "Username", Required: true},
+					{Key: "credential_id", Label: "Credential ID", Required: true},
+				}
+				m.Config = RuntimeConfig{Values: map[string]string{"host": "192.168.3.100", "username": "root", "credential_id": ""}}
+				return m
+			}(),
+			proto:   "ssh_native",
+			wantErr: ErrConnectorInvalidConfig,
+		},
+	}
 	for _, tc := range validateCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
@@ -106,6 +151,16 @@ func TestResolveRuntimeManifestValidateRuntimeManifestAndExecutionMode(t *testin
 				}
 				return
 			}
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("expected %v, got %v", tc.wantErr, err)
+			}
+		})
+	}
+	for _, tc := range configValidationCases {
+		tc := tc
+		t.Run("config_"+tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := ValidateRuntimeConfig(tc.m, tc.proto)
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("expected %v, got %v", tc.wantErr, err)
 			}

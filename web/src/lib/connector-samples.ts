@@ -21,10 +21,10 @@ export const connectorSamples: ConnectorManifest[] = [
         { id: 'host.verify', action: 'query', read_only: true, scopes: ['execution.read'], description: 'Verify SSH connectivity to the target host' },
       ],
       connection_form: [
-        { key: 'host', label: 'Host', type: 'string', required: true, description: 'Hostname or IP of the SSH server' },
+        { key: 'host', label: 'Host', type: 'string', required: true, description: 'SSH server IP or hostname' },
         { key: 'port', label: 'Port', type: 'string', required: false, default: '22', description: 'SSH port (default 22)' },
         { key: 'username', label: 'Username', type: 'string', required: true, description: 'SSH login username' },
-        { key: 'credential_id', label: 'Credential ID', type: 'string', required: true, description: 'SSH credential custody ID (secret material is encrypted separately)' },
+        { key: 'credential_id', label: 'Credential ID', type: 'string', required: true, description: 'Create the SSH custody item in Ops > Secrets first, then paste its ID here' },
       ],
       import_export: { exportable: true, importable: true, formats: ['yaml', 'json'] },
     },
@@ -68,7 +68,7 @@ export const connectorSamples: ConnectorManifest[] = [
         { id: 'query.range', action: 'query', read_only: true, scopes: ['metrics.read'] },
       ],
       connection_form: [
-        { key: 'base_url', label: 'Base URL', type: 'string', required: true },
+        { key: 'base_url', label: 'Base URL', type: 'string', required: true, description: 'VictoriaMetrics HTTP API address' },
         { key: 'bearer_token', label: 'Bearer Token', type: 'secret', required: false, secret: true },
       ],
       import_export: { exportable: true, importable: true, formats: ['yaml', 'json', 'tar.gz'] },
@@ -112,7 +112,7 @@ export const connectorSamples: ConnectorManifest[] = [
         { id: 'victorialogs.query', action: 'query', read_only: true, scopes: ['logs.read'], description: 'Alias for logs.query' },
       ],
       connection_form: [
-        { key: 'base_url', label: 'Base URL', type: 'string', required: true, description: 'VictoriaLogs URL, e.g. https://play-vmlogs.victoriametrics.com' },
+        { key: 'base_url', label: 'Base URL', type: 'string', required: true, description: 'VictoriaLogs HTTP API address, e.g. https://play-vmlogs.victoriametrics.com' },
         { key: 'bearer_token', label: 'Bearer Token', type: 'secret', required: false, secret: true, description: 'Optional bearer token for private instances' },
       ],
       import_export: { exportable: true, importable: true, formats: ['yaml', 'json'] },

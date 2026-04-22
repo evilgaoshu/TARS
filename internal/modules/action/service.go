@@ -609,6 +609,9 @@ func (s *Service) CheckManifestHealth(ctx context.Context, manifest connectors.M
 	probeManifest := manifest
 	// Draft probes should validate real connectivity even if the user plans to save disabled.
 	probeManifest.Disabled = false
+	if err := connectors.ValidateRuntimeConfig(probeManifest, probeManifest.Spec.Protocol); err != nil {
+		return connectors.LifecycleState{}, err
+	}
 
 	state := connectors.LifecycleState{
 		ConnectorID:    manifest.Metadata.ID,

@@ -12,13 +12,20 @@ import { applyConnectorProtocolPreset } from '@/lib/connector-samples';
 
 function getBaseUrlPlaceholder(protocol: string | undefined, fieldKey: string, fieldDefault?: string): string {
   if (fieldKey !== 'base_url') {
-    return fieldDefault || fieldKey;
+    switch (fieldKey) {
+      case 'host':
+        return fieldDefault || '192.168.3.100';
+      case 'username':
+        return fieldDefault || 'root';
+      default:
+        return fieldDefault || fieldKey;
+    }
   }
   switch (protocol) {
     case 'victoriametrics_http':
       return 'http://127.0.0.1:8428';
     case 'victorialogs_http':
-      return 'http://127.0.0.1:9428';
+      return 'https://play-vmlogs.victoriametrics.com';
     case 'prometheus_http':
       return 'http://127.0.0.1:9090';
     case 'jumpserver_api':
@@ -29,6 +36,16 @@ function getBaseUrlPlaceholder(protocol: string | undefined, fieldKey: string, f
     default:
       return fieldDefault || 'http://localhost:8080';
   }
+}
+
+function fieldHint(field: ConnectionField, t: ReturnType<typeof useI18n>['t']): string | undefined {
+  if (field.secret) {
+    return t('connectors.editor.secretHint');
+  }
+  if (field.key === 'credential_id') {
+    return field.description || 'Create the SSH custody item in Ops > Secrets first, then paste its ID here';
+  }
+  return field.description;
 }
 
 function validateBaseUrl(url: string): { valid: boolean; error?: string } {
@@ -56,6 +73,8 @@ type ValidationError = {
   field: string;
   message: string;
 };
+
+type ConnectionField = NonNullable<ConnectorManifest['spec']['connection_form']>[number];
 
 function formatTestStatusMessage(
   testStatus: TestStatus,
@@ -181,6 +200,7 @@ export function ConnectorManifestEditor({
     }
     return errors;
   }, [connectionFields, manifest.config]);
+  const canTest = validateConnectionFields.length === 0;
 
   const handleTest = () => {
     const errors = validateConnectionFields;
@@ -421,7 +441,7 @@ export function ConnectorManifestEditor({
                     variant="outline"
                     className="h-9 rounded-full border-success px-6 text-[0.65rem] font-bold uppercase tracking-widest text-success hover:bg-success/10"
                     onClick={handleTest}
-                    disabled={disabled || testing}
+                    disabled={disabled || testing || !canTest}
                   >
                     {testing ? <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-success/30 border-t-success" /> : null}
                     {t('connectors.editor.testAction')}
@@ -453,14 +473,14 @@ export function ConnectorManifestEditor({
                   {connectionFields.map((field) => {
                     const fieldKey = field.key || '';
                     return (
-                      <LabeledField
-                        key={fieldKey}
-                        label={field.label || fieldKey}
-                        required={Boolean(field.required)}
-                        hint={field.secret ? t('connectors.editor.secretHint') : field.description}
-                      >
-                        <div className="relative">
-                          <Input
+                        <LabeledField
+                          key={fieldKey}
+                          label={field.label || fieldKey}
+                          required={Boolean(field.required)}
+                          hint={fieldHint(field, t)}
+                        >
+                          <div className="relative">
+                            <Input
                             type="text"
                             className={cn(
                               'h-10 border-white/10 pr-10',
@@ -470,10 +490,15 @@ export function ConnectorManifestEditor({
                             onChange={(event) => updateFieldValue(fieldKey, event.target.value, Boolean(field.secret))}
                             disabled={disabled}
                             placeholder={field.secret ? `secret_ref:${fieldKey}` : getBaseUrlPlaceholder(manifest.spec.protocol, fieldKey, field.default)}
-                          />
-                          {field.secret ? (
-                            <Link
-                              to="/ops?tab=secrets#secret-inventory"
+                            />
+                            {validateConnectionFields.some((error) => error.field === fieldKey) ? (
+                              <div className="mt-2 text-[0.7rem] font-medium text-destructive">
+                                {validateConnectionFields.find((error) => error.field === fieldKey)?.message}
+                              </div>
+                            ) : null}
+                            {field.secret ? (
+                              <Link
+                                to="/ops?tab=secrets#secret-inventory"
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-warning transition-colors hover:text-white"
                               title={t('common.edit')}
                             >
@@ -706,7 +731,7 @@ export function ConnectorManifestEditor({
                       variant="outline"
                       className="h-9 rounded-full border-success px-6 text-[0.65rem] font-bold uppercase tracking-widest text-success hover:bg-success/10"
                       onClick={handleTest}
-                      disabled={disabled || testing}
+                      disabled={disabled || testing || !canTest}
                     >
                       {testing ? <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-success/30 border-t-success" /> : null}
                       {t('connectors.editor.testAction')}
@@ -724,9 +749,9 @@ export function ConnectorManifestEditor({
                   {connectionFields.map((field) => {
                     const fieldKey = field.key || '';
                     return (
-                      <LabeledField key={fieldKey} label={field.label || fieldKey} required={Boolean(field.required)} hint={field.secret ? t('connectors.editor.secretHint') : field.description}>
-                        <div className="relative">
-                          <Input
+                       <LabeledField key={fieldKey} label={field.label || fieldKey} required={Boolean(field.required)} hint={fieldHint(field, t)}>
+                         <div className="relative">
+                           <Input
                             type="text"
                             className={cn(
                               'h-10 border-white/10 pr-10',
@@ -737,6 +762,11 @@ export function ConnectorManifestEditor({
                             disabled={disabled}
                             placeholder={field.secret ? `secret_ref:${fieldKey}` : getBaseUrlPlaceholder(manifest.spec.protocol, fieldKey, field.default)}
                           />
+                          {validateConnectionFields.some((error) => error.field === fieldKey) ? (
+                            <div className="mt-2 text-[0.7rem] font-medium text-destructive">
+                              {validateConnectionFields.find((error) => error.field === fieldKey)?.message}
+                            </div>
+                          ) : null}
                           {field.secret && (manifest.spec.protocol === 'ssh_native' || manifest.spec.protocol === 'ssh_shell') && !manifest.config?.secret_refs?.[fieldKey]?.includes('/') && manifest.config?.secret_refs?.[fieldKey] !== '' && (
                             <div className="absolute -bottom-5 left-0 text-[0.6rem] text-rose-400 font-bold uppercase tracking-tighter animate-pulse">
                               Use secret_ref format (e.g. ssh/main/key)

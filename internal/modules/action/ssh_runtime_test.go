@@ -199,3 +199,27 @@ func TestSSHNativeRuntimeFailsClosedWhenRotationRequired(t *testing.T) {
 		t.Fatalf("expected rotation_required credential to fail closed, got %v", err)
 	}
 }
+
+func TestSSHNativeRuntimeHealthCheckFailsClosedWithoutCredentialID(t *testing.T) {
+	manager := sshcredentials.NewManager(sshcredentials.NewMemoryRepository(), sshcredentials.NewMemorySecretBackend())
+	runtime := NewSSHNativeRuntime(&fakeCredentialExecutor{}, manager)
+
+	status, summary, err := runtime.CheckHealth(context.Background(), connectors.Manifest{
+		Metadata: connectors.Metadata{ID: "ssh-main"},
+		Spec:     connectors.Spec{Type: "execution", Protocol: "ssh_native"},
+		Config: connectors.RuntimeConfig{Values: map[string]string{
+			"host":     "192.168.3.100",
+			"username": "root",
+		}},
+	})
+
+	if status != "unhealthy" {
+		t.Fatalf("expected unhealthy status, got %q", status)
+	}
+	if !strings.Contains(summary, "ssh credential_id is required") {
+		t.Fatalf("expected credential error summary, got %q", summary)
+	}
+	if err == nil || !strings.Contains(err.Error(), "ssh credential_id is required") {
+		t.Fatalf("expected credential error, got %v", err)
+	}
+}
