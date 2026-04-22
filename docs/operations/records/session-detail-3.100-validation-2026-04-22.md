@@ -15,6 +15,10 @@ Scope: `/sessions/95f49aeb-4312-4c31-a86a-07848e18ea66`
   - `make check-mvp` -> PASS
   - `TARS_REMOTE_HOST=192.168.3.100 TARS_REMOTE_USER=root TARS_DEPLOY_SKIP_VALIDATE=1 bash scripts/deploy_team_shared.sh` -> binary + web dist synced, remote service restarted, `ssh root@192.168.3.100 'curl -fsS http://127.0.0.1:8081/healthz'` -> `{"status":"ok"}`
   - `cd web && TARS_PLAYWRIGHT_BASE_URL=http://192.168.3.100:8081 TARS_PLAYWRIGHT_TOKEN=$TARS_OPS_API_TOKEN npx playwright test tests/sessions-executions.smoke.spec.ts --grep '/sessions/:id shows session detail with current diagnosis section'` -> FAIL at login, app stayed on `/login`
+  - `source scripts/lib/shared_ops_token.sh && export TARS_REMOTE_BASE_DIR=/data/tars-setup-lab && shared_ops_token_export >/tmp/tars_shared_token && TOKEN=$(cat /tmp/tars_shared_token) && curl -sS -D - -o /tmp/tars_setup_status_after.json -H "Authorization: Bearer ${TOKEN}" "http://192.168.3.100:8081/api/v1/setup/status"` -> `200 OK`
+  - `source scripts/lib/shared_ops_token.sh && export TARS_REMOTE_BASE_DIR=/data/tars-setup-lab && shared_ops_token_export >/tmp/tars_shared_token && TOKEN=$(cat /tmp/tars_shared_token) && curl -sS -D - -o /tmp/tars_login_after.json -X POST "http://192.168.3.100:8081/api/v1/auth/login" -H "Content-Type: application/json" --data "{\"provider_id\":\"local_token\",\"token\":\"${TOKEN}\"}"` -> `200 OK`
+  - `source scripts/lib/shared_remote_service.sh && shared_remote_service_restart "root@192.168.3.100" "/data/tars-setup-lab/team-shared" "/data/tars-setup-lab/bin/tars-linux-amd64-dev" "/data/tars-setup-lab/team-shared/tars-dev.log"` -> canonical shared-lab service restarted onto `/data/tars-setup-lab`
+  - `browse goto http://192.168.3.100:8081/login?provider_id=local_token` + fill token + open `/sessions/95f49aeb-4312-4c31-a86a-07848e18ea66` + capture screenshots -> PASS
 - Screenshots:
   - `docs/operations/records/session-detail-3.100-2026-04-22/desktop-1440.png`
   - `docs/operations/records/session-detail-3.100-2026-04-22/mobile-390.png`
@@ -22,17 +26,54 @@ Scope: `/sessions/95f49aeb-4312-4c31-a86a-07848e18ea66`
   - `docs/operations/records/session-detail-3.100-2026-04-22/mobile-390-after-deploy.png`
   - `docs/operations/records/session-detail-3.100-2026-04-22/desktop-1440-after-relogin.png`
   - `docs/operations/records/session-detail-3.100-2026-04-22/mobile-390-after-relogin.png`
+  - `docs/operations/records/session-detail-3.100-2026-04-22/desktop-1440-restored.png`
+  - `docs/operations/records/session-detail-3.100-2026-04-22/mobile-390-restored.png`
   - Playwright failure screenshot: `web/test-results/sessions-executions.smoke--dad6d-h-current-diagnosis-section/test-failed-1.png`
   - Playwright trace: `web/test-results/sessions-executions.smoke--dad6d-h-current-diagnosis-section/trace.zip`
 - Result summary:
   - Local implementation checks passed.
-  - Shared env service on `192.168.3.100:8081` was restarted with the new binary and web dist, and healthz returned OK.
-  - Shared env browser verification is blocked by auth: the token that still works for `GET /api/v1/setup/status` no longer completes `/login?provider_id=local_token` and Playwright stays on `/login`.
-  - Mobile overflow probe after deploy remained `0`, but full authenticated page acceptance could not be completed because the shared env rejected browser login.
+  - Shared env service on `192.168.3.100:8081` was initially serving the wrong runtime tree: `/root/tars-dev/bin/tars-linux-amd64-dev` with `/root/tars-dev/team-shared/shared-test.env`, whose `TARS_OPS_API_TOKEN` was still a placeholder.
+  - Canonical shared-lab env remained healthy under `/data/tars-setup-lab/team-shared/shared-test.env`, which still held the real shared token.
+  - Restarting the service onto the documented canonical tree `/data/tars-setup-lab` restored both bearer auth and `local_token` login.
+  - Shared env browser verification then passed on the real session page for both `1440x900` and `390x844`, and the restored run reported no console errors.
+  - The mobile viewport loaded without horizontal overflow in the authenticated session detail page.
+
+## Fresh Runtime Check
+
+- Checked at: `2026-04-22` after PR `#5` was already open.
+- Remote process:
+  - `ssh root@192.168.3.100 'ps -ef | grep tars-linux-amd64-dev | grep -v grep'`
+  - active pid: `3636837`
+- Binary path:
+  - `ssh root@192.168.3.100 'readlink -f /proc/3636837/exe'`
+  - result: `/data/tars-setup-lab/bin/tars-linux-amd64-dev`
+- Working directory:
+  - `ssh root@192.168.3.100 'pwdx 3636837'`
+  - result: `/root`
+- Listener:
+  - `ssh root@192.168.3.100 'lsof -iTCP:8081 -sTCP:LISTEN -n -P'`
+  - result: pid `3636837` listening on `*:8081`
+- Effective env/config paths from `/proc/3636837/environ`:
+  - `TARS_SERVER_LISTEN=0.0.0.0:8081`
+  - `TARS_WEB_DIST_DIR=/data/tars-setup-lab/web-dist`
+  - `TARS_PROVIDERS_CONFIG_PATH=/data/tars-setup-lab/team-shared/providers.shared.yaml`
+  - `TARS_CONNECTORS_CONFIG_PATH=/data/tars-setup-lab/team-shared/connectors.shared.yaml`
+  - `TARS_SKILLS_CONFIG_PATH=/data/tars-setup-lab/team-shared/skills.shared.yaml`
+  - `TARS_AUTOMATIONS_CONFIG_PATH=/data/tars-setup-lab/team-shared/automations.shared.yaml`
+  - `TARS_SECRETS_CONFIG_PATH=/data/tars-setup-lab/team-shared/secrets.shared.yaml`
+  - `TARS_ACCESS_CONFIG_PATH=/data/tars-setup-lab/team-shared/access.shared.yaml`
+- Fresh endpoint checks:
+  - `GET /api/v1/setup/status` with canonical shared token -> `200 OK`
+  - `POST /api/v1/auth/login` with `{"provider_id":"local_token","token":"<shared token>"}` -> `200 OK`
+  - `GET /sessions/95f49aeb-4312-4c31-a86a-07848e18ea66` -> `200 OK`
+- Conclusion:
+  - `192.168.3.100:8081` is currently served by the canonical shared-lab instance under `/data/tars-setup-lab`, not `/root/tars-dev`.
+  - The deployed session detail page still corresponds to the feature implementation commit `3f3252596dceba94a3932ac22adbb28a776d7075`, which was the PR `#5` head when the restored runtime/browser verification was captured. The follow-up evidence commit is docs-only and does not change the deployed page behavior.
 
 ## Notes
 
-- Browser auth blocker details:
-  - `POST /api/v1/auth/login` with `provider_id=local_token` returned `401` when replayed manually.
-  - The official shared-lab smoke test reproduces the same blocker, so this is not a one-off manual browser issue.
-  - Console evidence after the failed smoke login is captured in `web/test-results/.../error-context.md` and `test-failed-1.png`.
+- Root cause details:
+  - The live listener on `:8081` had drifted to `/root/tars-dev/bin/tars-linux-amd64-dev`, while the documented canonical shared lab for `192.168.3.100` is `/data/tars-setup-lab`.
+  - `/root/tars-dev/team-shared/shared-test.env` still held `TARS_OPS_API_TOKEN=REPLACE_WITH_OPS_API_TOKEN`, so the running process rejected both bearer auth and `local_token` fallback.
+  - The canonical `/data/tars-setup-lab/team-shared/shared-test.env` still held the real shared token, which is why the token helper and the live process had diverged.
+  - No product-code change was required for this fix; the issue was shared-env process/path drift.
