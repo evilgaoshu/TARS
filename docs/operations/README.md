@@ -11,6 +11,7 @@
 ## 共享测试与本地联调
 
 - [shared_lab_192.168.3.100.md](./shared_lab_192.168.3.100.md) - 共享测试机部署、重启、reset、检查方法
+- [shared-lab-verification.md](./shared-lab-verification.md) - PR 验收前的 shared-lab 运行态一致性检查与证据固化流程
 - [team_dev_test_environment.md](./team_dev_test_environment.md) - 团队开发与测试环境全景说明
 
 ## GitHub 迁移与 CI/CD

@@ -95,6 +95,51 @@ test_sync_only_uses_local_token_override() {
   )
 }
 
+test_check_shared_lab_script_exists_and_is_executable() {
+  local script_path="${ROOT_DIR}/scripts/check-shared-lab.sh"
+
+  [[ -f "${script_path}" ]] || fail "expected shared lab verification script at scripts/check-shared-lab.sh"
+  [[ -x "${script_path}" ]] || fail "expected scripts/check-shared-lab.sh to be executable"
+}
+
+test_check_shared_lab_script_enforces_canonical_runtime_and_endpoints() {
+  local script_path="${ROOT_DIR}/scripts/check-shared-lab.sh"
+
+  grep -q 'CANONICAL_BASE_DIR="${TARS_SHARED_LAB_CANONICAL_BASE_DIR:-/data/tars-setup-lab}"' "${script_path}" || \
+    fail "check-shared-lab should default the canonical shared lab root to /data/tars-setup-lab"
+  grep -q '/api/v1/auth/login' "${script_path}" || \
+    fail "check-shared-lab should verify the local_token login endpoint"
+  grep -q '/api/v1/setup/status' "${script_path}" || \
+    fail "check-shared-lab should verify the setup/status endpoint"
+  grep -q 'session_url' "${script_path}" || \
+    fail "check-shared-lab should support an explicit session URL input"
+  grep -q 'workdir/config points outside canonical shared lab root' "${script_path}" || \
+    fail "check-shared-lab should emit a blocker when workdir or config escapes the canonical root"
+}
+
+test_shared_lab_verification_docs_and_template_exist() {
+  local doc_path="${ROOT_DIR}/docs/operations/shared-lab-verification.md"
+  local template_path="${ROOT_DIR}/docs/operations/templates/verification-evidence.md"
+  local records_dir="${ROOT_DIR}/docs/operations/records"
+
+  [[ -f "${doc_path}" ]] || fail "expected shared lab verification runbook doc"
+  [[ -f "${template_path}" ]] || fail "expected verification evidence template doc"
+  [[ -d "${records_dir}" ]] || fail "expected docs/operations/records directory to exist"
+
+  grep -q 'PR review' "${doc_path}" || \
+    fail "shared lab verification doc should explain when to run checks before PR review"
+  grep -q 'PASS' "${doc_path}" || \
+    fail "shared lab verification doc should explain PASS/FAIL interpretation"
+  grep -q 'PR URL' "${template_path}" || \
+    fail "verification evidence template should capture PR URL"
+  grep -q 'Head commit SHA' "${template_path}" || \
+    fail "verification evidence template should capture head commit SHA"
+  grep -q '1440px' "${template_path}" || \
+    fail "verification evidence template should capture desktop screenshot evidence"
+  grep -q '390px' "${template_path}" || \
+    fail "verification evidence template should capture mobile screenshot evidence"
+}
+
 test_deploy_normalizes_local_placeholder_before_remote_fallback() {
   local deploy_path="${ROOT_DIR}/scripts/deploy_team_shared.sh"
 
@@ -497,6 +542,9 @@ test_remote_placeholder_token_is_rejected
 test_local_real_token_is_accepted
 test_shared_host_token_fallback_defaults_remote_user
 test_sync_only_uses_local_token_override
+test_check_shared_lab_script_exists_and_is_executable
+test_check_shared_lab_script_enforces_canonical_runtime_and_endpoints
+test_shared_lab_verification_docs_and_template_exist
 test_deploy_normalizes_local_placeholder_before_remote_fallback
 test_smoke_scripts_normalize_placeholder_before_remote_fallback
 test_tool_plan_live_validate_requires_monitoring_first_tools
