@@ -5,7 +5,7 @@
 
 ## Unified Spec
 
-This runbook is the versioned spec for [EVI-11](../../specs/00-specs-index.md) delivery.
+This runbook is the shared-lab verification spec and template companion for evidence records such as [EVI-11](./records/EVI-11-PR6-2026-04-22.md) and [EVI-12](../../specs/evi-12-runtime-vs-pr-head-commit.md).
 
 The goal is to make PR review and QA handoff answer two questions with one repeatable command:
 
@@ -101,6 +101,34 @@ After the script passes:
 4. Fill `docs/operations/templates/verification-evidence.md`.
 5. If PM asks for committed evidence, save the filled record under `docs/operations/records/EVI-11-PR{number}-{date}.md` and include it in the PR.
 
+### Evidence Commits And PR Head Movement
+
+Evidence commits can move the PR head after runtime validation. That is expected and does not automatically invalidate the shared-lab result.
+
+Use these definitions consistently in the template and PR comments:
+
+1. `Runtime validated commit SHA`: the commit that was actually deployed and verified on `192.168.3.100`.
+2. `Evidence commit SHA` or `docs-only evidence commit SHA`: the follow-up commit that only adds records, screenshots, or other evidence files.
+3. `Final PR head commit SHA`: the latest PR head before final acceptance.
+
+If the evidence commit only changes documentation or evidence files and does not change runtime code, deployment configuration, or scripts, do not redeploy `192.168.3.100` and do not repeat runtime validation just because the PR head moved.
+
+Examples of likely docs-only evidence files:
+
+1. `docs/**/*.md`
+2. `docs/**/*.png`
+3. `docs/**/*.jpg`
+
+Even when no redeploy is required, the `Final PR head commit SHA` must still have green GitHub CI/checks before anyone describes the PR as finally complete.
+
+Treat the file examples above as guidance, not as the only rule. The real decision point is whether the follow-up commit changed runtime code, deployment configuration, or scripts.
+
+If `Runtime validated commit SHA` and `Final PR head commit SHA` differ, explain the reason in `Notes / Blockers` or an equivalent field, for example `evidence-only commit` or `docs-only screenshots and records`.
+
+Do not create an infinite evidence loop. Evidence-only commits do not trigger another shared-lab redeploy, which means they also do not require another round of runtime screenshots solely because the PR head advanced.
+
+This EVI-12 update is a docs-only/template-only task. It does not require fresh `192.168.3.100` runtime validation by itself.
+
 ## Output Format
 
 The script intentionally prints comment-friendly lines:
@@ -114,4 +142,4 @@ check.session_url: PASS status=200 url=http://192.168.3.100:8081/sessions/...
 overall: PASS
 ```
 
-Paste this block directly into a PR comment or issue reply so reviewers can compare the runtime identity output with the screenshot evidence and the PR head commit.
+Paste this block directly into a PR comment or issue reply so reviewers can compare the runtime identity output with the screenshot evidence, the runtime validated commit, and the final PR head commit.
