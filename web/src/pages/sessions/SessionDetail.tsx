@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { OperatorHero, OperatorKicker, OperatorSection, OperatorStack } from '@/components/operator/OperatorPage'
-import { formatDateTime, formatRelativeTime, humanizeLabel, riskTone, sessionAttachmentCount, sessionConclusion, sessionCurrentState, sessionHeadline, sessionHost, sessionNextAction, sessionRisk, sessionService, shortID, statusTone } from '@/lib/operator'
+import { formatDateTime, formatRelativeTime, humanizeLabel, riskTone, sessionAttachmentCount, sessionConclusion, sessionCurrentState, sessionHeadline, sessionNextAction, sessionRisk, sessionService, shortID, statusTone } from '@/lib/operator'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/hooks/useI18n'
 
@@ -60,7 +60,6 @@ export const SessionDetailView = () => {
   const attachmentCount = sessionAttachmentCount(session)
   const timelineItems = session.timeline || []
   const keyTimelineItems = timelineItems.slice(0, KEY_TIMELINE_ITEMS)
-  const lastUpdated = formatRelativeTime(timelineItems[timelineItems.length - 1]?.created_at)
   const evidenceRows = buildEvidenceRows(session.tool_plan || [])
   const hasNarrative = !!session.diagnosis_summary?.trim()
   const hasKnowledge = !!trace?.knowledge || !!traceError
@@ -94,12 +93,6 @@ export const SessionDetailView = () => {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="break-words text-lg font-semibold leading-8 text-foreground sm:text-[1.35rem]">{sessionConclusion(session)}</div>
-              <div className="flex flex-wrap gap-2">
-                <OperatorKicker label={t('common.service')} value={sessionService(session)} tone="info" />
-                <OperatorKicker label={t('common.host')} value={sessionHost(session)} tone="muted" />
-                <OperatorKicker label={t('sessions.stats.updated')} value={lastUpdated} tone="muted" />
-                <OperatorKicker label={t('sessions.stats.executions')} value={String(session.executions.length)} tone={session.executions.length > 0 ? 'warning' : 'muted'} />
-              </div>
             </CardContent>
           </Card>
 

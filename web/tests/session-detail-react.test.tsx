@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import enUS from '../src/locales/en-US.json'
 
 const fetchSessionMock = vi.fn()
 const fetchSessionTraceMock = vi.fn()
@@ -125,6 +126,10 @@ async function flushAll() {
   await act(async () => {
     await Promise.resolve()
   })
+}
+
+function findElementByText(container: HTMLElement, text: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>('*')).find((node) => node.textContent === text) ?? null
 }
 
 describe('SessionDetailView', () => {
@@ -264,11 +269,17 @@ describe('SessionDetailView', () => {
     await flushAll()
 
     const text = container.textContent || ''
+    const currentDiagnosisSection = findElementByText(container, 'Current diagnosis')?.closest('[class*="overflow-hidden"]')
+
     expect(fetchSessionMock).toHaveBeenCalledWith('sess-1')
     expect(fetchSessionTraceMock).toHaveBeenCalledWith('sess-1')
     expect(text).toContain('Current diagnosis')
     expect(text).toContain('Current conclusion')
     expect(text).toContain('Recommended next step')
+    expect(currentDiagnosisSection?.textContent || '').not.toContain('Service')
+    expect(currentDiagnosisSection?.textContent || '').not.toContain('Host')
+    expect(currentDiagnosisSection?.textContent || '').not.toContain('Last update')
+    expect(currentDiagnosisSection?.textContent || '').not.toContain('Executions')
     expect(text).not.toContain('Risk level')
     expect(text).not.toContain('Current state')
     expect(text).toContain('Evidence summary')
@@ -293,6 +304,11 @@ describe('SessionDetailView', () => {
     })
     queryClient.clear()
     container.remove()
+  })
+
+  it('keeps english copy aligned with the reduced operator summary', () => {
+    expect(enUS['sessions.sections.currentDiagnosisDesc']).toBe('Lead with the operator-facing call and recommended next step, without repeating the header status.')
+    expect(enUS['sessions.sections.evidenceSummaryDesc']).toBe('Show tool-plan evidence as expandable rows with status, result, and supporting details.')
   })
 
   it('hides empty sections instead of rendering empty cards', async () => {
