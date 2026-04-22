@@ -30,6 +30,14 @@ The win is not "AI wrote a long summary." The win is a responder opening one ses
 
 That is the whole game.
 
+## Session Detail Target Layout
+
+The session detail page is being refocused around operator decision speed: current diagnosis, recommended next step, left-side timeline, and expandable evidence rows from the tool plan.
+
+This image is the confirmed target information architecture reference for `/sessions/:id`. It is a design reference only, not a substitute for runtime validation in the shared environment.
+
+![Session detail target information architecture](docs/assets/session-detail-ia.png)
+
 ## Architecture
 
 ```mermaid

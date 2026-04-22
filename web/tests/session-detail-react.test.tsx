@@ -31,9 +31,9 @@ vi.mock('../src/hooks/useI18n', () => ({
         'sessions.backToQueue': 'Back to queue',
         'sessions.action.reviewApprovals': 'Review approvals',
         'sessions.sections.currentDiagnosis': 'Current diagnosis',
-        'sessions.sections.currentDiagnosisDesc': 'Lead with the operator-facing call, evidence, risk, next step, and current state.',
+        'sessions.sections.currentDiagnosisDesc': 'Lead with the operator-facing call and recommended next step.',
         'sessions.sections.evidenceSummary': 'Evidence summary',
-        'sessions.sections.evidenceSummaryDesc': 'Show the strongest metrics, logs, and traces signals before the raw process.',
+        'sessions.sections.evidenceSummaryDesc': 'Show tool evidence before the raw process.',
         'sessions.sections.narrative': 'Diagnosis narrative',
         'sessions.sections.narrativeDesc': 'Narrative stays available after the first-screen summary.',
         'sessions.sections.toolPlan': 'Tool plan',
@@ -55,10 +55,23 @@ vi.mock('../src/hooks/useI18n', () => ({
         'sessions.sections.audit': 'Audit trace',
         'sessions.sections.auditDesc': 'Backend audit entries tied to this session.',
         'sessions.fields.currentConclusion': 'Current conclusion',
+        'sessions.fields.recommendedNextStep': 'Recommended next step',
         'sessions.fields.evidence': 'Evidence',
         'sessions.fields.risk': 'Risk level',
         'sessions.fields.nextStep': 'Next step',
         'sessions.fields.currentState': 'Current state',
+        'sessions.fields.tool': 'Tool',
+        'sessions.fields.connector': 'Connector',
+        'sessions.fields.status': 'Status',
+        'sessions.fields.result': 'Result',
+        'sessions.fields.details': 'Details',
+        'sessions.fields.rawInput': 'Raw input',
+        'sessions.fields.rawOutput': 'Raw output',
+        'sessions.fields.attachmentsCount': '{{count}} attachments',
+        'sessions.fields.timelineAll': 'Show all events',
+        'sessions.fields.timelineKey': 'Key milestones',
+        'sessions.fields.auditCount': 'Audit trace · {{count}} events',
+        'sessions.fields.evidenceAttachments': 'Evidence attachments',
         'sessions.evidence.metrics': 'Metrics',
         'sessions.evidence.logs': 'Logs',
         'sessions.evidence.traces': 'Traces',
@@ -223,7 +236,7 @@ describe('SessionDetailView', () => {
     })
   })
 
-  it('puts current diagnosis and evidence summary ahead of narrative and process-heavy sections', async () => {
+  it('keeps current diagnosis focused and puts timeline ahead of evidence and collapsed detail sections', async () => {
     const { SessionDetailView } = await import('../src/pages/sessions/SessionDetail')
     const container = document.createElement('div')
     document.body.appendChild(container)
@@ -255,25 +268,25 @@ describe('SessionDetailView', () => {
     expect(fetchSessionTraceMock).toHaveBeenCalledWith('sess-1')
     expect(text).toContain('Current diagnosis')
     expect(text).toContain('Current conclusion')
-    expect(text).toContain('Evidence')
-    expect(text).toContain('Risk level')
-    expect(text).toContain('Next step')
-    expect(text).toContain('Current state')
+    expect(text).toContain('Recommended next step')
+    expect(text).not.toContain('Risk level')
+    expect(text).not.toContain('Current state')
     expect(text).toContain('Evidence summary')
-    expect(text).toContain('Metrics')
-    expect(text).toContain('Logs')
-    expect(text).toContain('Traces')
-    expect(text).toContain('Deploy / change')
-    expect(text).toContain('SSH')
-    expect(text).toContain('Deploy checkout-api build 418 reached production canary before the latency spike.')
-    expect(text).toContain('bastion ssh handshake to inventory-api-1 succeeded for manual fallback.')
-    expect(text).toContain('1 evidence attachment available')
-    expect(text.indexOf('Current diagnosis')).toBeLessThan(text.indexOf('Evidence summary'))
+    expect(text).toContain('Timeline')
+    expect(text).toContain('Tool')
+    expect(text).toContain('Connector')
+    expect(text).toContain('Status')
+    expect(text).toContain('Result')
+    expect(text).toContain('Details')
+    expect(text).toContain('Key milestones')
+    expect(text).toContain('Show all events')
+    expect(text).toContain('Diagnosis narrative')
+    expect(text).toContain('Raw output')
+    expect(text).toContain('Audit trace · 1 events')
+    expect(text).toContain('Evidence attachments')
+    expect(text.indexOf('Timeline')).toBeLessThan(text.indexOf('Evidence summary'))
     expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('Diagnosis narrative'))
-    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('Tool plan'))
-    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('Timeline'))
-    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('Audit trace'))
-    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('Raw alert context'))
+    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('Audit trace · 1 events'))
 
     await act(async () => {
       root.unmount()
@@ -282,7 +295,7 @@ describe('SessionDetailView', () => {
     container.remove()
   })
 
-  it('keeps empty delivery and ssh evidence visible in the quick-scan area', async () => {
+  it('hides empty sections instead of rendering empty cards', async () => {
     fetchSessionMock.mockResolvedValueOnce({
       session_id: 'sess-2',
       status: 'analyzing',
@@ -335,12 +348,13 @@ describe('SessionDetailView', () => {
     await flushAll()
 
     const text = container.textContent || ''
-    expect(text).toContain('Deploy / change')
-    expect(text).toContain('SSH')
-    expect(text).toContain('No deploy or change evidence yet')
-    expect(text).toContain('No SSH evidence yet')
-    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('No deploy or change evidence yet'))
-    expect(text.indexOf('Evidence summary')).toBeLessThan(text.indexOf('No SSH evidence yet'))
+    expect(text).toContain('Evidence summary')
+    expect(text).not.toContain('Knowledge context')
+    expect(text).not.toContain('Linked executions')
+    expect(text).not.toContain('Evidence attachments')
+    expect(text).not.toContain('Notifications')
+    expect(text).not.toContain('Verification')
+    expect(text).not.toContain('Audit trace')
 
     await act(async () => {
       root.unmount()
