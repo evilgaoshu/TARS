@@ -1,8 +1,13 @@
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-const providersPage = readFileSync('/Users/yue/TARS/web/src/pages/providers/ProvidersPage.tsx', 'utf8')
-const agentRolesPage = readFileSync('/Users/yue/TARS/web/src/pages/identity/AgentRolesPage.tsx', 'utf8')
+function readFixture(relativePath: string) {
+  return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8')
+}
+
+const providersPage = readFixture('../src/pages/providers/ProvidersPage.tsx')
+const agentRolesPage = readFixture('../src/pages/identity/AgentRolesPage.tsx')
 
 describe('provider page localization cleanup', () => {
   it('does not keep the known user-facing hardcoded strings', () => {

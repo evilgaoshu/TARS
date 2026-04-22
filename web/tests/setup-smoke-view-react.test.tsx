@@ -610,6 +610,68 @@ describe('SetupSmokeView wizard mode', () => {
     container.remove()
   })
 
+  it('shows the provider check error inline when connectivity verification fails', async () => {
+    checkSetupWizardProviderMock.mockRejectedValueOnce(new Error('provider check failed'))
+    fetchSetupWizardMock.mockResolvedValueOnce({
+      initialization: {
+        mode: 'wizard',
+        admin_configured: false,
+        auth_configured: false,
+        provider_ready: false,
+        channel_ready: false,
+        provider_check_ok: false,
+        initialized: false,
+        next_step: 'admin',
+      },
+      admin: {},
+      auth: {},
+      provider: {
+        provider: {
+          id: 'primary-openai',
+          vendor: 'openai',
+          protocol: 'openai_compatible',
+          base_url: 'https://api.openai.com/v1',
+          api_key_ref: 'secret://providers/primary-openai/api-key',
+          primary_model: 'gpt-4o-mini',
+          api_key_set: true,
+          enabled: true,
+        },
+      },
+      channel: {},
+    })
+
+    const { SetupSmokeView } = await import('../src/pages/setup/SetupSmokeView')
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <SetupSmokeView />
+        </MemoryRouter>,
+      )
+    })
+    await flush()
+    await flush()
+
+    const checkButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Check Connectivity'))
+    expect(checkButton).toBeTruthy()
+
+    await act(async () => {
+      checkButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await flush()
+    await flush()
+
+    expect(checkSetupWizardProviderMock).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Failed to check provider connectivity.')
+    expect(container.textContent).not.toContain('Connectivity check passed:')
+
+    root.unmount()
+    container.remove()
+  })
+
   it('shows a visible language toggle and lets operators enter a raw API key during setup', async () => {
     const { SetupSmokeView } = await import('../src/pages/setup/SetupSmokeView')
     const container = document.createElement('div')

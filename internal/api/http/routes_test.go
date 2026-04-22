@@ -1974,6 +1974,100 @@ func TestBootstrapStatusAllowsAnonymousAccessAfterInitialization(t *testing.T) {
 	}
 }
 
+func TestSetupWizardProviderCheckFlowUpdatesBootstrapStatusAfterCompletion(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	secretsPath := dir + "/secrets.yaml"
+	providerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/models":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"id":"gpt-4o-mini"}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer providerServer.Close()
+	if err := os.WriteFile(secretsPath, []byte(`secrets:
+  entries:
+    - ref: secret://providers/setup-openai/api-key
+      value: test-key
+`), 0o600); err != nil {
+		t.Fatalf("write secrets: %v", err)
+	}
+
+	cfg := defaultTestConfig()
+	cfg.Reasoning.SecretsConfigPath = secretsPath
+	cfg.Connectors.SecretsPath = secretsPath
+	cfg.Telegram.BotToken = "bot-token"
+	system := newTestSystemWithConfig(t, true, true, true, cfg)
+
+	beforeResp := performJSONRequest(t, system.handler, http.MethodGet, "/api/v1/bootstrap/status", nil, nil)
+	if beforeResp.Code != http.StatusOK {
+		t.Fatalf("unexpected bootstrap status before setup: %d body=%s", beforeResp.Code, beforeResp.Body.String())
+	}
+	var before dto.BootstrapStatusResponse
+	decodeRecorderJSON(t, beforeResp, &before)
+	if before.Initialized || before.Mode != "wizard" || before.NextStep != "admin" {
+		t.Fatalf("expected anonymous bootstrap wizard payload before setup, got %+v", before)
+	}
+
+	adminResp := performJSONRequest(t, system.handler, http.MethodPost, "/api/v1/setup/wizard/admin", []byte(`{"username":"setup-admin","display_name":"Setup Admin","email":"setup@example.com","password":"Password-123!"}`), nil)
+	if adminResp.Code != http.StatusOK {
+		t.Fatalf("unexpected admin step status: %d body=%s", adminResp.Code, adminResp.Body.String())
+	}
+
+	providerCheckResp := performJSONRequest(t, system.handler, http.MethodPost, "/api/v1/setup/wizard/provider/check", []byte(`{
+	  "provider_id":"setup-openai",
+	  "vendor":"openai",
+	  "protocol":"openai_compatible",
+	  "base_url":"`+providerServer.URL+`",
+	  "api_key_ref":"secret://providers/setup-openai/api-key"
+	}`), nil)
+	if providerCheckResp.Code != http.StatusOK {
+		t.Fatalf("unexpected provider check status: %d body=%s", providerCheckResp.Code, providerCheckResp.Body.String())
+	}
+	var providerCheck dto.ProviderCheckResponse
+	decodeRecorderJSON(t, providerCheckResp, &providerCheck)
+	if !providerCheck.Available {
+		t.Fatalf("expected provider check availability, got %+v", providerCheck)
+	}
+
+	providerResp := performJSONRequest(t, system.handler, http.MethodPost, "/api/v1/setup/wizard/provider", []byte(`{"provider_id":"setup-openai","vendor":"openai","protocol":"openai_compatible","base_url":"`+providerServer.URL+`","api_key_ref":"secret://providers/setup-openai/api-key","model":"gpt-4o-mini"}`), nil)
+	if providerResp.Code != http.StatusOK {
+		t.Fatalf("unexpected provider step status: %d body=%s", providerResp.Code, providerResp.Body.String())
+	}
+
+	channelResp := performJSONRequest(t, system.handler, http.MethodPost, "/api/v1/setup/wizard/channel", []byte(`{"channel_id":"ops-room","name":"Ops Room","type":"telegram","target":"-10012345"}`), nil)
+	if channelResp.Code != http.StatusOK {
+		t.Fatalf("unexpected channel step status: %d body=%s", channelResp.Code, channelResp.Body.String())
+	}
+
+	completeResp := performJSONRequest(t, system.handler, http.MethodPost, "/api/v1/setup/wizard/complete", nil, nil)
+	if completeResp.Code != http.StatusOK {
+		t.Fatalf("unexpected complete step status: %d body=%s", completeResp.Code, completeResp.Body.String())
+	}
+	var completed dto.SetupWizardResponse
+	decodeRecorderJSON(t, completeResp, &completed)
+	if !completed.Initialization.Initialized || completed.Initialization.Mode != "runtime" {
+		t.Fatalf("expected runtime mode after completion, got %+v", completed.Initialization)
+	}
+	if !strings.Contains(completed.Initialization.LoginHint.LoginURL, "next=%2Fruntime-checks") {
+		t.Fatalf("expected login hint to target runtime checks, got %+v", completed.Initialization.LoginHint)
+	}
+
+	afterResp := performJSONRequest(t, system.handler, http.MethodGet, "/api/v1/bootstrap/status", nil, nil)
+	if afterResp.Code != http.StatusOK {
+		t.Fatalf("unexpected bootstrap status after setup: %d body=%s", afterResp.Code, afterResp.Body.String())
+	}
+	var after dto.BootstrapStatusResponse
+	decodeRecorderJSON(t, afterResp, &after)
+	if !after.Initialized || after.Mode != "runtime" {
+		t.Fatalf("expected runtime bootstrap payload after setup, got %+v", after)
+	}
+}
+
 func TestSetupStatusRequiresAuthorizationAfterInitialization(t *testing.T) {
 	t.Parallel()
 

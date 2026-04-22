@@ -34,7 +34,8 @@ export TARS_PLAYWRIGHT_TOKEN="${TOKEN}"
 cd "${WEB_DIR}"
 
 echo "== TARS web smoke =="
-echo "scope=L2/L3 control-plane smoke"
+echo "scope=L2/L3 Playwright control-plane smoke"
+echo "note=jsdom/vitest coverage runs separately via 'cd web && npm run test'"
 echo "base_url=${BASE_URL}"
 echo "mode=${MODE}"
 echo
