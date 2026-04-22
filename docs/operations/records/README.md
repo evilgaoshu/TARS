@@ -8,6 +8,10 @@
 - [local_observability_lab_2026-04-08.md](./local_observability_lab_2026-04-08.md) - `192.168.3.100` / `192.168.3.9` VictoriaMetrics + VictoriaLogs 观测栈记录
 - [shared_lab_first_run_validation_2026-04-22.md](./shared_lab_first_run_validation_2026-04-22.md) - `192.168.3.100` shared-lab 首跑 deploy + live validation + connector 联调记录
 
+新记录命名建议：`EVI-11-PR{number}-{date}.md`
+
+如需把 shared-lab 验证证据随 PR 一起提交，请从 `../templates/verification-evidence.md` 复制模板，再把实际记录放到本目录。
+
 ## 安全与轮换记录
 
 - [credential_rotation_execution_tracker_2026-04-08.md](./credential_rotation_execution_tracker_2026-04-08.md) - 凭据轮换与 owner 确认追踪
