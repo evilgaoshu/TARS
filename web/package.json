@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "npm run test:unit",
     "test:unit": "vitest run",
     "test:smoke": "playwright test tests/control-plane.smoke.spec.ts tests/sessions-executions.smoke.spec.ts",
     "test:smoke:headed": "playwright test tests/control-plane.smoke.spec.ts tests/sessions-executions.smoke.spec.ts --headed"

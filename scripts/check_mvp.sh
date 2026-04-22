@@ -28,17 +28,19 @@ log_and_check() {
   fi
 }
 
-log_and_check "[1/6] go test" "GOCACHE=\"\${GOCACHE:-/tmp/tars-go-build}\" go test ./..."
-log_and_check "[2/6] core coverage" "\"$ROOT_DIR/scripts/check_core_coverage.sh\""
-log_and_check "[3/6] go build" "GOCACHE=\"\${GOCACHE:-/tmp/tars-go-build}\" go build ./..."
-log_and_check "[4/6] openapi validation" "\"$ROOT_DIR/scripts/validate_openapi.rb\""
+log_and_check "[1/7] go test" "GOCACHE=\"\${GOCACHE:-/tmp/tars-go-build}\" go test ./..."
+log_and_check "[2/7] core coverage" "\"$ROOT_DIR/scripts/check_core_coverage.sh\""
+log_and_check "[3/7] go build" "GOCACHE=\"\${GOCACHE:-/tmp/tars-go-build}\" go build ./..."
+log_and_check "[4/7] openapi validation" "\"$ROOT_DIR/scripts/validate_openapi.rb\""
 
 if [ -d "$ROOT_DIR/web" ]; then
-  log_and_check "[5/6] web lint" "(cd \"$ROOT_DIR/web\" && npm run lint)"
-  log_and_check "[6/6] web build" "(cd \"$ROOT_DIR/web\" && npm run build)"
+  log_and_check "[5/7] web lint" "(cd \"$ROOT_DIR/web\" && npm run lint)"
+  log_and_check "[6/7] web test" "(cd \"$ROOT_DIR/web\" && npm run test)"
+  log_and_check "[7/7] web build" "(cd \"$ROOT_DIR/web\" && npm run build)"
 else
-  echo "[5/6] web lint skipped"
-  echo "[6/6] web build skipped"
+  echo "[5/7] web lint skipped"
+  echo "[6/7] web test skipped"
+  echo "[7/7] web build skipped"
 fi
 
 echo "\n✅ ALL MVP checks passed (Strict Mode)"

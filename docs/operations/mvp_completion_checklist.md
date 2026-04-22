@@ -84,6 +84,8 @@
 
 满足以下条件即可进入试点：
 
+- [ ] 本地基线入口明确：`go test ./...`、`cd web && npm run test`、`cd web && npm run lint`、`cd web && npm run build`、`bash scripts/check_mvp.sh`
+- [ ] 分层验证入口明确：Vitest/jsdom 负责路由守卫、首跑 setup 与 `/runtime-checks` 组件覆盖；`bash scripts/ci/web-smoke.sh` 负责共享环境 Playwright smoke
 - [ ] `scripts/check_mvp.sh` 通过
 - [ ] 目标环境的 providers / SSH / Telegram / VM 全部连通
 - [ ] 至少完成一次 `/runtime-checks -> Telegram 审批 -> resolved`
