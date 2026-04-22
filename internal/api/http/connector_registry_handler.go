@@ -878,6 +878,10 @@ func connectorHealthHandler(deps Dependencies, connectorID string) http.HandlerF
 			writeConnectorError(w, err)
 			return
 		}
+		if err := connectors.ValidateRuntimeConfig(entry, entry.Spec.Protocol); err != nil {
+			writeConnectorError(w, err)
+			return
+		}
 		if err := connectors.ValidateRuntimeManifest(entry, "", "", nil); err != nil {
 			writeConnectorError(w, err)
 			return
@@ -1079,6 +1083,8 @@ func writeConnectorError(w http.ResponseWriter, err error) {
 	case errors.Is(err, connectors.ErrConnectorIncompatible):
 		writeError(w, http.StatusConflict, "invalid_state", err.Error())
 	case errors.Is(err, connectors.ErrConnectorRuntimeUnsupported):
+		writeError(w, http.StatusBadRequest, "validation_failed", err.Error())
+	case errors.Is(err, connectors.ErrConnectorInvalidConfig):
 		writeError(w, http.StatusBadRequest, "validation_failed", err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, "internal_error", err.Error())

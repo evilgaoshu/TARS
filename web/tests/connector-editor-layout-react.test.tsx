@@ -120,4 +120,76 @@ describe("Connector editor layout regression guards", () => {
     root.unmount();
     container.remove();
   });
+
+  it("renders first-class connector hints and placeholders for ssh and victoria connectors", async () => {
+    const { ConnectorManifestEditor } = await import("../src/components/operator/ConnectorManifestEditor");
+    const { connectorSamples, createEmptyConnectorManifest, createConnectorDraftFromTemplate } = await import("../src/lib/connector-samples");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const sshTemplate = connectorSamples.find((sample) => sample.metadata.id === "ssh-main");
+    const vmTemplate = connectorSamples.find((sample) => sample.metadata.id === "victoriametrics-main");
+    const vmlogsTemplate = connectorSamples.find((sample) => sample.metadata.id === "victorialogs-main");
+
+    expect(sshTemplate && vmTemplate && vmlogsTemplate).toBeTruthy();
+
+    let manifest = createConnectorDraftFromTemplate(sshTemplate!, createEmptyConnectorManifest());
+    let selectedTemplateID: string | null = "ssh-main";
+
+    const renderEditor = () => {
+      root.render(
+        <MemoryRouter>
+          <ConnectorManifestEditor
+            manifest={manifest}
+            isEdit={false}
+            onChange={(next) => {
+              manifest = next;
+              renderEditor();
+            }}
+            createTemplates={connectorSamples}
+            selectedCreateTemplate={selectedTemplateID}
+            onSelectCreateTemplate={(templateID) => {
+              selectedTemplateID = templateID;
+              const template = connectorSamples.find((sample) => sample.metadata.id === templateID);
+              if (template) {
+                manifest = createConnectorDraftFromTemplate(template, createEmptyConnectorManifest());
+              }
+              renderEditor();
+            }}
+          />
+        </MemoryRouter>,
+      );
+    };
+
+    await act(async () => {
+      renderEditor();
+    });
+    await flushAll();
+
+    const sshHost = Array.from(container.querySelectorAll("input")).find((input) => (input as HTMLInputElement).placeholder === "192.168.3.100");
+    const sshUser = Array.from(container.querySelectorAll("input")).find((input) => (input as HTMLInputElement).placeholder === "root");
+    expect(sshHost).toBeTruthy();
+    expect(sshUser).toBeTruthy();
+    expect(container.textContent || "").toContain("Ops > Secrets");
+
+    await act(async () => {
+      const vmButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("VictoriaMetrics"));
+      vmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushAll();
+    expect(Array.from(container.querySelectorAll("input")).some((input) => (input as HTMLInputElement).placeholder === "http://127.0.0.1:8428")).toBe(true);
+    expect(container.textContent || "").toContain("VictoriaMetrics HTTP API");
+
+    await act(async () => {
+      const logsButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("VictoriaLogs"));
+      logsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushAll();
+    expect(Array.from(container.querySelectorAll("input")).some((input) => (input as HTMLInputElement).placeholder === "https://play-vmlogs.victoriametrics.com")).toBe(true);
+    expect(container.textContent || "").toContain("VictoriaLogs HTTP API");
+
+    root.unmount();
+    container.remove();
+  });
 });

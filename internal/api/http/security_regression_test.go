@@ -313,6 +313,68 @@ func TestSecurityConnectorsWriteRoleCannotUseSSHCredentialsWithoutCustodyUsePerm
 	}
 }
 
+func TestConnectorProbeRejectsInvalidRuntimeConfig(t *testing.T) {
+	t.Parallel()
+
+	deps, accessManager := newSSHCredentialSecurityDeps(t)
+	token := issueSessionForPermissions(t, accessManager, "connector_writer", []string{"connectors.write", "ssh_credentials.use"})
+	authHeader := map[string]string{"Authorization": "Bearer " + token}
+
+	t.Run("ssh missing credential", func(t *testing.T) {
+		resp := performJSONRequest(t, connectorProbeHandler(deps), http.MethodPost, "/api/v1/connectors/probe", []byte(`{
+			"manifest": {
+				"api_version": "tars.connector/v1alpha1",
+				"kind": "connector",
+				"metadata": {"id": "ssh-main", "name": "ssh-main", "display_name": "SSH Main", "vendor": "openssh", "version": "1.0.0"},
+				"spec": {
+					"type": "execution",
+					"protocol": "ssh_native",
+					"connection_form": [
+						{"key": "host", "label": "Host", "type": "string", "required": true},
+						{"key": "username", "label": "Username", "type": "string", "required": true},
+						{"key": "credential_id", "label": "Credential ID", "type": "string", "required": true}
+					],
+					"import_export": {"exportable": true, "importable": true}
+				},
+				"config": {"values": {"host": "192.168.3.100", "username": "root", "credential_id": ""}},
+				"compatibility": {"tars_major_versions": ["1"], "modes": ["managed"]}
+			}
+		}`), authHeader)
+		if resp.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 for missing ssh credential, got %d body=%s", resp.Code, resp.Body.String())
+		}
+		if !strings.Contains(resp.Body.String(), "Credential ID") {
+			t.Fatalf("expected credential validation error, got %s", resp.Body.String())
+		}
+	})
+
+	t.Run("metrics invalid url", func(t *testing.T) {
+		resp := performJSONRequest(t, connectorProbeHandler(deps), http.MethodPost, "/api/v1/connectors/probe", []byte(`{
+			"manifest": {
+				"api_version": "tars.connector/v1alpha1",
+				"kind": "connector",
+				"metadata": {"id": "victoriametrics-main", "name": "victoriametrics-main", "display_name": "VictoriaMetrics", "vendor": "victoriametrics", "version": "1.0.0"},
+				"spec": {
+					"type": "metrics",
+					"protocol": "victoriametrics_http",
+					"connection_form": [
+						{"key": "base_url", "label": "Base URL", "type": "string", "required": true}
+					],
+					"import_export": {"exportable": true, "importable": true}
+				},
+				"config": {"values": {"base_url": "http://[::1"}},
+				"compatibility": {"tars_major_versions": ["1"], "modes": ["managed"]}
+			}
+		}`), authHeader)
+		if resp.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 for invalid metrics url, got %d body=%s", resp.Code, resp.Body.String())
+		}
+		if !strings.Contains(resp.Body.String(), "base_url") {
+			t.Fatalf("expected base_url validation error, got %s", resp.Body.String())
+		}
+	})
+}
+
 func newSSHCredentialSecurityDeps(t *testing.T) (Dependencies, *access.Manager) {
 	t.Helper()
 

@@ -690,7 +690,7 @@ describe("Connector Create Probe Validation", () => {
     await flushAll();
 
     const baseUrlInput = Array.from(container.querySelectorAll("input")).find(
-      (input) => (input as HTMLInputElement).placeholder === "http://127.0.0.1:9428",
+      (input) => (input as HTMLInputElement).placeholder === "https://play-vmlogs.victoriametrics.com",
     ) as HTMLInputElement | undefined;
     await act(async () => {
       setInputValue(baseUrlInput!, "http://localhost:9428");

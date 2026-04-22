@@ -293,7 +293,7 @@ describe("ConnectorsList Spec Alignment", () => {
     expect(container.textContent || "").toContain("新建连接器");
 
     const baseUrlInput = Array.from(container.querySelectorAll("input")).find(
-      (input) => (input as HTMLInputElement).placeholder === "http://127.0.0.1:9428",
+      (input) => (input as HTMLInputElement).placeholder === "https://play-vmlogs.victoriametrics.com",
     ) as HTMLInputElement | undefined;
     expect(baseUrlInput).toBeTruthy();
 
@@ -371,6 +371,58 @@ describe("ConnectorsList Spec Alignment", () => {
 
     // Test with empty base_url should fail validation locally
     // (the test button requires createReady which checks required fields)
+    root.unmount();
+    container.remove();
+  });
+
+  it("blocks save and test when required ssh fields are empty and shows field errors", async () => {
+    const { ConnectorsList } = await import("../src/pages/connectors/ConnectorsList");
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } }
+    });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <QueryClientProvider client={queryClient}>
+            <ConnectorsList />
+          </QueryClientProvider>
+        </MemoryRouter>
+      );
+    });
+    await flushAll();
+
+    await act(async () => {
+      await clickByText(container, "新建连接器");
+    });
+    await flushAll();
+
+    await act(async () => {
+      await clickByText(container, "SSH Connector");
+    });
+    await flushAll();
+
+    const createButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("创建连接器")) as HTMLButtonElement | undefined;
+    const testButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("测试连接")) as HTMLButtonElement | undefined;
+
+    expect(createButton).toBeTruthy();
+    expect(testButton).toBeTruthy();
+    expect(createButton?.disabled).toBe(true);
+
+    await act(async () => {
+      testButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushAll();
+
+    expect(probeConnectorManifestMock).not.toHaveBeenCalled();
+    const content = container.textContent || "";
+    expect(content).toContain("Host is required");
+    expect(content).toContain("Username is required");
+    expect(content).toContain("Credential ID is required");
+
     root.unmount();
     container.remove();
   });
