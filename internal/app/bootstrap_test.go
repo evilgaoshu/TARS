@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -111,6 +113,12 @@ func TestOptionalServicesAttachSeparatelyFromPilotLoop(t *testing.T) {
 func TestBuildPilotCoreServicesRegistersVictoriaLogsCapabilityRuntime(t *testing.T) {
 	t.Parallel()
 
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal error"))
+	}))
+	defer srv.Close()
+
 	shared, err := buildSharedBootstrap(testBootstrapConfig(t))
 	if err != nil {
 		t.Fatalf("buildSharedBootstrap: %v", err)
@@ -145,14 +153,14 @@ func TestBuildPilotCoreServicesRegistersVictoriaLogsCapabilityRuntime(t *testing
 			},
 			ImportExport: connectors.ImportExport{Exportable: true, Importable: true, Formats: []string{"yaml", "json"}},
 		},
-		Config:        connectors.RuntimeConfig{Values: map[string]string{"base_url": ""}},
+		Config:        connectors.RuntimeConfig{Values: map[string]string{"base_url": srv.URL}},
 		Compatibility: connectors.Compatibility{TARSMajorVersions: []string{"1"}},
 	})
 	if err != nil {
 		t.Fatalf("expected app bootstrap to support victorialogs_http health probes, got %v", err)
 	}
-	if state.Health.Status != "unhealthy" || !strings.Contains(state.Health.Summary, "base_url") {
-		t.Fatalf("expected registered runtime to report missing base_url as unhealthy, got %+v", state.Health)
+	if state.Health.Status != "unhealthy" || !strings.Contains(state.Health.Summary, "status=500") {
+		t.Fatalf("expected registered runtime to report probe failure as unhealthy, got %+v", state.Health)
 	}
 }
 
