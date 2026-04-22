@@ -1,68 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const providersPage = readFileSync(
-  "/Users/yue/TARS/web/src/pages/providers/ProvidersPage.tsx",
-  "utf8",
-);
-const agentRolesPage = readFileSync(
-  "/Users/yue/TARS/web/src/pages/identity/AgentRolesPage.tsx",
-  "utf8",
-);
-const automationsPage = readFileSync(
-  "/Users/yue/TARS/web/src/pages/automations/AutomationsPage.tsx",
-  "utf8",
-);
-const extensionsPage = readFileSync(
-  "/Users/yue/TARS/web/src/pages/extensions/ExtensionsPage.tsx",
-  "utf8",
-);
-const opsActionView = readFileSync(
-  "/Users/yue/TARS/web/src/pages/ops/OpsActionView.tsx",
-  "utf8",
-);
-const channelsPage = readFileSync(
-  "/Users/yue/TARS/web/src/pages/channels/ChannelsPage.tsx",
-  "utf8",
-);
-const connectorManifestEditor = readFileSync(
-  "/Users/yue/TARS/web/src/components/operator/ConnectorManifestEditor.tsx",
-  "utf8",
-);
-const featureGateProvider = readFileSync(
-  "/Users/yue/TARS/web/src/lib/FeatureGateProvider.tsx",
-  "utf8",
-);
-const skillsList = readFileSync(
-  "/Users/yue/TARS/web/src/pages/skills/SkillsList.tsx",
-  "utf8",
-);
-const sessionList = readFileSync(
-  "/Users/yue/TARS/web/src/pages/sessions/SessionList.tsx",
-  "utf8",
-);
-const outboxConsole = readFileSync(
-  "/Users/yue/TARS/web/src/pages/outbox/OutboxConsole.tsx",
-  "utf8",
-);
-const executionActionBar = readFileSync(
-  "/Users/yue/TARS/web/src/components/operator/ExecutionActionBar.tsx",
-  "utf8",
-);
-const docsView = readFileSync(
-  "/Users/yue/TARS/web/src/pages/docs/DocsView.tsx",
-  "utf8",
-);
-const sessionsExecutionsSmoke = readFileSync(
-  "/Users/yue/TARS/web/tests/sessions-executions.smoke.spec.ts",
-  "utf8",
-);
-const webGitignore = readFileSync(
-  "/Users/yue/TARS/web/.gitignore",
-  "utf8",
-);
+function readFixture(relativePath: string) {
+  return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8");
+}
+
+const providersPage = readFixture("../src/pages/providers/ProvidersPage.tsx");
+const agentRolesPage = readFixture("../src/pages/identity/AgentRolesPage.tsx");
+const automationsPage = readFixture("../src/pages/automations/AutomationsPage.tsx");
+const extensionsPage = readFixture("../src/pages/extensions/ExtensionsPage.tsx");
+const opsActionView = readFixture("../src/pages/ops/OpsActionView.tsx");
+const channelsPage = readFixture("../src/pages/channels/ChannelsPage.tsx");
+const connectorManifestEditor = readFixture("../src/components/operator/ConnectorManifestEditor.tsx");
+const featureGateProvider = readFixture("../src/lib/FeatureGateProvider.tsx");
+const skillsList = readFixture("../src/pages/skills/SkillsList.tsx");
+const sessionList = readFixture("../src/pages/sessions/SessionList.tsx");
+const outboxConsole = readFixture("../src/pages/outbox/OutboxConsole.tsx");
+const executionActionBar = readFixture("../src/components/operator/ExecutionActionBar.tsx");
+const docsView = readFixture("../src/pages/docs/DocsView.tsx");
+const sessionsExecutionsSmoke = readFixture("./sessions-executions.smoke.spec.ts");
+const webGitignore = readFixture("../.gitignore");
 const webPackage = JSON.parse(
-  readFileSync("/Users/yue/TARS/web/package.json", "utf8"),
+  readFixture("../package.json"),
 ) as {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
