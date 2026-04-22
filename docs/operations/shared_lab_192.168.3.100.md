@@ -46,7 +46,7 @@
 说明：
 
 - 当前共享 lab 要求 `Postgres` 可用，不建议在这台机器上跑 runtime config 的内存 fallback。
-- 真实凭据不应写回仓库；`shared-test.env` 和 `team-shared/*.yaml` 在仓库中只保留 template-safe 内容。
+- 真实凭据不应写回仓库；仓库里提交的是 `deploy/team-shared/shared-test.env.example` 模板，部署脚本会在同步时将其物化为 `shared-test.env` 并与远端 canonical 值合并。
 
 ## 3. 当前推荐部署命令
 
@@ -67,7 +67,7 @@ bash scripts/deploy_team_shared.sh
 - 自动构建 `linux/amd64` 二进制
 - 构建 `web/dist`
 - 同步 `deploy/team-shared/*.yaml`、marketplace 和 fixtures 脚本到 `/data/tars-setup-lab/team-shared`
-- 同步 `shared-test.env` 时，会保留远端真实 secret / placeholder 覆盖项，同时继续把仓库里的 host/path 等模板化字段同步到共享机
+- 同步 `shared-test.env` 时，会先从仓库里的 `shared-test.env.example` 生成模板，再保留远端真实 secret / placeholder 覆盖项，同时继续把仓库里的 host/path 等模板化字段同步到共享机
 - 同步二进制到 `/data/tars-setup-lab/bin/tars-linux-amd64-dev`
 - 同步前端到 `/data/tars-setup-lab/web-dist`
 - 重启 TARS
@@ -82,7 +82,7 @@ bash scripts/deploy_team_shared.sh
 补充约定：
 
 - `192.168.3.100` 的共享 `Ops API token` 以远端 `/data/tars-setup-lab/team-shared/shared-test.env` 为唯一事实来源。
-- 真实 token 不回写仓库；仓库里的 `deploy/team-shared/shared-test.env` 只保留 placeholder。
+- 真实 token 不回写仓库；仓库里的 `deploy/team-shared/shared-test.env.example` 只保留 placeholder。
 - 当前 `deploy_team_shared.sh / scripts/ci/smoke-remote.sh / scripts/ci/live-validate.sh / scripts/ci/web-smoke.sh` 会先归一化本地 token；如果本地值是空值或 placeholder，再通过 SSH 从这份远端 `shared-test.env` 自动解析 canonical token。
 - `deploy_team_shared.sh` 会继续同步 `shared-test.env`，但对仍是 placeholder / 空值的条目会保留远端真实值；这样共享机上的 canonical token 与其它机密配置不会被仓库模板冲回占位值，同时非 secret 的 env 演进仍能随仓库推进。
 - 如需临时覆盖共享 token，再在当前 shell 显式 `export TARS_OPS_API_TOKEN=...`。

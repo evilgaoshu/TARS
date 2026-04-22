@@ -9,8 +9,8 @@
 
 ## 文件说明
 
-- [shared-test.env](shared-test.env)
-  - 当前共享测试环境的主环境变量
+- [shared-test.env.example](shared-test.env.example)
+  - 当前共享测试环境主环境变量的 template-safe 模板；部署脚本会在同步时生成远端 `shared-test.env`
 - [providers.shared.yaml](providers.shared.yaml)
   - 主模型 / 辅助模型 / 备用模型 Provider Registry
 - [connectors.shared.yaml](connectors.shared.yaml)
@@ -44,7 +44,7 @@
 
 ### 本地开发
 
-1. 复制 `shared-test.env` 到你自己的机器并按需改路径。
+1. 复制 `shared-test.env.example` 到你自己的机器作为 `shared-test.env` 并按需改路径。
 2. 保持 `providers.shared.yaml / connectors.shared.yaml / access.shared.yaml / approvals.shared.yaml` 与团队基线一致。
 3. 如需切回自己的模型或机器人，只改你本地副本，不改仓库基线。
 4. 运行 `deploy_team_shared.sh` 前，请显式设置 `TARS_REMOTE_USER`；`TARS_OPS_API_TOKEN` 可以显式覆盖，也可以留空让脚本在 SSH 可用时从共享机的 `shared-test.env` 自动解析。若本地环境变量只是 placeholder，脚本也会自动忽略并继续回退远端 canonical token。
@@ -182,7 +182,7 @@ bash REPLACE_WITH_REMOTE_SHARED_DIR/seed_team_shared_fixtures.sh
 - 自动探测远端架构并构建对应的 `linux/amd64` 或 `linux/arm64` 二进制
 - 构建 Web dist
 - 同步 `deploy/team-shared/*.yaml`、marketplace 包和 fixtures 脚本
-- 同步 `shared-test.env` 时，会保留远端真实 secret / placeholder 覆盖项，同时继续把仓库中的 host/path 等模板化字段推进到共享机
+- 同步 `shared-test.env` 时，会先从仓库里的 `shared-test.env.example` 生成模板，再保留远端真实 secret / placeholder 覆盖项，同时继续把仓库中的 host/path 等模板化字段推进到共享机
 - 生成共享 fixtures
 - 重启远端服务
 - 运行 live validation
