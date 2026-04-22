@@ -182,9 +182,18 @@ sync_shared_files() {
   local tmp_sync_dir
   local sync_ops_token=""
   local shared_env_path="${ROOT_DIR}/deploy/team-shared/shared-test.env"
+  local shared_env_source="${shared_env_path}"
   local remote_env_snapshot=""
   tmp_sync_dir=$(mktemp -d)
-  cp "${shared_env_path}" "${ROOT_DIR}/deploy/team-shared/"*.yaml "${ROOT_DIR}/deploy/team-shared/README.md" "${tmp_sync_dir}/"
+  if [[ ! -f "${shared_env_source}" ]]; then
+    shared_env_source="${shared_env_path}.example"
+  fi
+  if [[ ! -f "${shared_env_source}" ]]; then
+    log "missing shared-test env template; expected ${shared_env_path} or ${shared_env_path}.example"
+    return 1
+  fi
+  cp "${shared_env_source}" "${tmp_sync_dir}/shared-test.env"
+  cp "${ROOT_DIR}/deploy/team-shared/"*.yaml "${ROOT_DIR}/deploy/team-shared/README.md" "${tmp_sync_dir}/"
   remote_env_snapshot="${tmp_sync_dir}/.remote-shared-test.env"
   ssh "${REMOTE}" "cat '${REMOTE_SHARED_DIR}/shared-test.env' 2>/dev/null || true" > "${remote_env_snapshot}" || true
 

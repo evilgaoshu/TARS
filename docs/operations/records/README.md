@@ -6,6 +6,7 @@
 ## 环境记录
 
 - [local_observability_lab_2026-04-08.md](./local_observability_lab_2026-04-08.md) - `192.168.3.100` / `192.168.3.9` VictoriaMetrics + VictoriaLogs 观测栈记录
+- [shared_lab_first_run_validation_2026-04-22.md](./shared_lab_first_run_validation_2026-04-22.md) - `192.168.3.100` shared-lab 首跑 deploy + live validation + connector 联调记录
 
 ## 安全与轮换记录
 
