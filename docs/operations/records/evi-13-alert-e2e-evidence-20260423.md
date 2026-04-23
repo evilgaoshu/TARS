@@ -5,7 +5,7 @@
 - Shared lab host: `192.168.3.100`
 - Canonical runtime root: `/data/tars-setup-lab`
 - Verifier: `DEV-opencode-gpt5.4`
-- Commit: `28fdd67`
+- Commit: `b5e4765`
 
 ## Summary
 
