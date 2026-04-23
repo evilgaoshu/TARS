@@ -15,18 +15,18 @@ Use `docs/operations/github_publishable_baseline.md` as the local keep-track vs 
 
 ## 1. Migration Prep Checklist
 
-- [ ] Confirm the tracked baseline exists and is the version we want to migrate from.
+- [x] Confirm the tracked baseline candidate and record the exact commit SHA in `specs/evi-14-github-baseline-publish-gate.md`. Current GitHub baseline candidate: `origin/main` at `2ab7be8f9a28eeb81d613d8da57544a758e72108`; final sign-off remains an owner decision before any real tag/push.
 - [x] Inventory the publishable tree and mark anything that must stay shared-only or local-only.
 - [x] Review `docs/operations/github_publishable_baseline.md` and resolve every keep-track vs keep-local item before any first commit.
 - [x] Separate CI-safe checks from shared-machine checks.
 - [x] Template or sanitize `deploy/team-shared` before any broader GitHub exposure.
 - [x] Pin GitHub Actions to commit SHAs and add explicit workflow permissions.
-- [ ] Decide the branch policy for the GitHub move: protected `main`, PR-only changes, and required checks (`MVP Checks`, `Security Regression`, `Secret Scan`, `Static Demo Build`).
+- [x] Record the recommended branch policy for the GitHub move in the EVI-14 spec: protected `main`, PR-only changes, and required checks `L0 Pre-check`, `L1 MVP Checks`, `L2 Security Regression`, `Secret Scan`, and `Static Demo Build`. Final GitHub settings remain an owner decision.
 - [x] Make sure current quick-start/free-path docs do not imply root SSH, host-key bypassing, or persistent-machine assumptions.
 
 ## 2. Secrets Cleanup And Rotation Checklist
 
-Use this checklist to prepare the rotation window. The actual rotation still happens later.
+Use this checklist to prepare the rotation window. For the GitHub baseline publish gate documented on 2026-04-23, owner confirmation that all 12 credential classes are `invalid/non-live` closes rotation as a non-blocking owner decision rather than an engineering prerequisite.
 
 ### Secret classes to inventory
 
@@ -44,10 +44,10 @@ Use this checklist to prepare the rotation window. The actual rotation still hap
 
 - [ ] List every file and script that currently reads the secret.
 - [ ] Decide the target storage for each secret: GitHub secret, GitHub environment secret, external secret manager, or machine-local injection.
-- [ ] Mark which secrets must be rotated before repo visibility expands.
+- [x] Mark which secrets must be rotated before repo visibility expands. Current owner decision: none of the 12 tracked credential classes require engineering rotation for the baseline publish gate because all were confirmed `invalid/non-live` on 2026-04-08.
 - [x] Remove current-tree secret-bearing examples from docs, templates, and sample configs.
 - [x] Verify that demo/smoke-only paths require explicit credential injection instead of checked-in defaults.
-- [ ] Record the owner for each secret class so the actual rotation can be executed without guesswork.
+- [x] Record the owner for each secret class so the actual rotation can be executed without guesswork. See `docs/operations/records/credential_rotation_execution_tracker_2026-04-08.md`.
 - [ ] Decide whether a free-tier preview path (GitHub Pages or Supabase Free) is needed, and keep it out of required checks.
 
 ## 3. Exit Criteria
@@ -58,11 +58,11 @@ Use this checklist to prepare the rotation window. The actual rotation still hap
 - [x] GitHub Actions is limited to the CI baseline, not deploy or shared-host access.
 - [x] Free-environment boundaries are documented and acknowledged.
 - [x] The secret worker has acknowledged scan and rotation status.
-- [ ] A separate rotation window is approved for the actual key changes.
+- [x] Rotation window closed for this publish gate. Owner decision on 2026-04-08: all 12 credential classes are `invalid/non-live`, so no separate rotation window is required as an engineering blocker.
 
 ## 4. Next Execution Step
 
-Next, run the external rotation window for credential classes in `docs/reports/secret-scan-and-rotation-2026-04-07.md`, then create the first local GitHub tracked baseline. Do not push until the rotation owners confirm either “rotated” or “already invalid / fixture-only.”
+Next, obtain owner sign-off for the tracked baseline candidate documented in `specs/evi-14-github-baseline-publish-gate.md`, then perform the first baseline tag/push sequence outside this docs-only task. Do not tag or push until owner sign-off explicitly confirms the candidate commit and any branch protection choices.
 
 ## 5. Push-Readiness Assessment (2026-04-11)
 
@@ -91,13 +91,14 @@ Next, run the external rotation window for credential classes in `docs/reports/s
 
 | Blocker | Type | Owner |
 | --- | --- | --- |
-| Branch protection policy not yet decided | Human decision | Team |
-| Separate rotation window not yet approved | Human coordination | Secret worker / owners |
-| Confirm tracked baseline is the intended migration version | Human sign-off | Team |
+| Final owner sign-off that `origin/main` commit `2ab7be8f9a28eeb81d613d8da57544a758e72108` is the intended first GitHub baseline | Human sign-off | Owner |
+| Final GitHub branch protection settings application | Owner decision | Owner |
+| Any tag naming deviation from `v0.1.0-baseline` if a repository naming conflict is found at execution time | Owner decision | Owner |
 
 ### What does NOT block pushing (technical gate is clear)
 
 - No runtime secrets in the machine-scannable publishable non-test tree; historical reports/records and test fixtures are explicitly left on the human-review path.
-- All GitHub Actions are scoped to L0/L1/L2/static-demo; no SSH, no deploy, no shared-machine access.
+- All GitHub Actions required for the baseline are scoped to `L0 Pre-check`, `L1 MVP Checks`, `L2 Security Regression`, `Secret Scan`, and `Static Demo Build`; no SSH, no deploy, no shared-machine access.
 - All Actions are SHA-pinned with `permissions: contents: read`.
 - All 5 CI checks pass locally and are reproducible on GitHub-hosted runners.
+- `192.168.3.100`, `deploy/live-validate`, `smoke-remote`, `deploy-sync`, Telegram, VictoriaMetrics, VictoriaLogs, playground, and `.github/workflows/ci-layered.yml` are outside GitHub required checks.
