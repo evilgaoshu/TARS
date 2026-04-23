@@ -4,6 +4,12 @@
 
 Turn the current pilot-ready MVP into a reviewable go/no-go evidence pack backed by fresh `192.168.3.100` runtime validation.
 
+## Scope Note
+
+- Owner approved an EVI-13 scope exception on `2026-04-23`: for this PR, QA signoff may stop at `diagnosis -> execution_draft_ready -> approval_accepted`.
+- SSH / JumpServer execution and verifier evidence are explicitly skipped for this issue closeout because the live execution runtime is being bypassed by owner instruction, not because the product requirement disappeared.
+- This exception only narrows the acceptance scope for PR #8 evidence refresh. It does not change the longer-term full-go checklist for a real execution/verifier pilot sample.
+
 ## In Scope
 
 - Capture fresh `192.168.3.100` evidence for health, readiness, rollout mode, provider/channel status, and pilot hygiene.
@@ -46,6 +52,16 @@ Turn the current pilot-ready MVP into a reviewable go/no-go evidence pack backed
   - missing-host guidance with no session creation
   - explicit-host session creation and an execution-capable flow when the request calls for one
 - Shared-lab config must use a real SSH allowlist instead of placeholder values.
+
+### Required for the owner-approved PR #8 closeout scope
+
+- Shared-lab runtime must stay healthy and ready.
+- Telegram conversational path must show:
+  - missing-host guidance with no session creation
+  - explicit-host session creation
+  - `execution_draft_ready` and `approval_accepted` on `192.168.3.100`
+- Evidence pack must include the real `session_id`, `execution_id`, approval-path timeline entries, and either screenshot or log/API evidence for `approval_accepted`.
+- If execution still routes into a skipped JumpServer/SSH path, record the exact runtime blocker and mark execution/verifier as owner-skipped rather than silently omitting them.
 
 ### Allowed to ship as evidence-only closeout
 

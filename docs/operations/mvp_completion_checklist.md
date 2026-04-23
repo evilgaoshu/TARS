@@ -97,9 +97,9 @@
 
 - `make check-mvp`、`make smoke-remote`、`make live-validate` 已在本轮通过。
 - `192.168.3.100` 的 SSH allowlist 基线已修复并验证为 `192.168.3.100,127.0.0.1`。
-- VM / VL 连通正常，但 Telegram 仍是 `stub`，reasoning provider baseline 仍不足以支撑真实审批执行闭环。
+- VM / VL 连通正常；本轮 fresh evidence 中 Telegram/provider 已足以支撑 `execution_draft_ready -> approval_accepted`。
 - Telegram 对话路径已验证：缺少 host 时给出引导且不创建 session；指定 host 时会创建 `telegram_chat` session。
-- 指定 host 的会话当前仍停留在 diagnosis-only closeout，尚未拿到 required `approval -> execute -> verifier` 证据。
+- 指定 host 的会话现已稳定到达 `execution_draft_ready` 和 `approval_accepted`；SSH / JumpServer execution 与 verifier 已被 owner 明确要求在 PR #8 closeout 中先跳过。
 
 ### 暂不建议 Go
 
