@@ -84,14 +84,22 @@
 
 满足以下条件即可进入试点：
 
-- [ ] 本地基线入口明确：`go test ./...`、`cd web && npm run test`、`cd web && npm run lint`、`cd web && npm run build`、`bash scripts/check_mvp.sh`
-- [ ] 分层验证入口明确：Vitest/jsdom 负责路由守卫、首跑 setup 与 `/runtime-checks` 组件覆盖；`bash scripts/ci/web-smoke.sh` 负责共享环境 Playwright smoke
-- [ ] `scripts/check_mvp.sh` 通过
+- [x] 本地基线入口明确：`make check-mvp` 为主入口，子步骤包含 `go test ./...`、`cd web && npm run test`、`cd web && npm run lint`、`cd web && npm run build`
+- [x] 分层验证入口明确：`make smoke-remote` 负责共享环境 readiness/hygiene，`make live-validate` 负责 shared live validation，`bash scripts/ci/web-smoke.sh` 仍负责共享环境 Playwright smoke
+- [x] `scripts/check_mvp.sh` 通过
 - [ ] 目标环境的 providers / SSH / Telegram / VM 全部连通
 - [ ] 至少完成一次 `/runtime-checks -> Telegram 审批 -> resolved`
 - [ ] 至少完成一次 Telegram 对话式请求验收
-- [ ] 试点使用的授权策略和审批路由已固化到配置文件
-- [ ] 已明确试点后的 `knowledge / vector / outbox` 保留决策将按 `docs/reports/pilot-core-decision-gate-template.md` 填写，不在试点开始前拍脑袋决定
+- [x] 试点使用的授权策略和审批路由已固化到配置文件
+- [x] 已明确试点后的 `knowledge / vector / outbox` 保留决策将按 `docs/reports/pilot-core-decision-gate-template.md` 填写，不在试点开始前拍脑袋决定
+
+当前 EVI-13 证据说明：
+
+- `make check-mvp`、`make smoke-remote`、`make live-validate` 已在本轮通过。
+- `192.168.3.100` 的 SSH allowlist 基线已修复并验证为 `192.168.3.100,127.0.0.1`。
+- VM / VL 连通正常；本轮 fresh evidence 中 Telegram/provider 已足以支撑 `execution_draft_ready -> approval_accepted`。
+- Telegram 对话路径已验证：缺少 host 时给出引导且不创建 session；指定 host 时会创建 `telegram_chat` session。
+- 指定 host 的会话现已稳定到达 `execution_draft_ready` 和 `approval_accepted`；SSH / JumpServer execution 与 verifier 已被 owner 明确要求在 PR #8 closeout 中先跳过。
 
 ### 暂不建议 Go
 

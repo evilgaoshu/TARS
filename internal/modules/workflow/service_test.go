@@ -493,6 +493,89 @@ func TestApplyDiagnosisRehydratesExecutionHintFromDesenseMap(t *testing.T) {
 	}
 }
 
+func TestApplyDiagnosisUsesPlannedExecutionCommandWhenHintIsEmptyForTelegramChat(t *testing.T) {
+	t.Parallel()
+
+	service := NewService(Options{
+		DiagnosisEnabled: true,
+		ApprovalEnabled:  true,
+	})
+
+	result, err := service.HandleAlertEvent(context.Background(), contracts.AlertEvent{
+		Source:      "telegram_chat",
+		Severity:    "info",
+		Fingerprint: "chat:planned-execution",
+		Labels: map[string]string{
+			"alertname": "TarsChatRequest",
+			"instance":  "192.168.3.100",
+			"host":      "192.168.3.100",
+			"severity":  "info",
+			"chat_id":   "445308292",
+			"tars_chat": "true",
+		},
+		Annotations: map[string]string{
+			"summary":      "看一下你的出口IP是多少",
+			"user_request": "看一下你的出口IP是多少",
+		},
+	})
+	if err != nil {
+		t.Fatalf("handle alert: %v", err)
+	}
+
+	outbox, err := service.ClaimOutboxBatch(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("claim outbox: %v", err)
+	}
+	if len(outbox) != 1 {
+		t.Fatalf("expected 1 outbox event, got %d", len(outbox))
+	}
+
+	dispatchResult, err := service.ApplyDiagnosis(context.Background(), outbox[0].EventID, contracts.DiagnosisOutput{
+		Summary: "需要到目标主机执行只读命令获取出口 IP。",
+		ToolPlan: []contracts.ToolPlanStep{{
+			ID:     "exec_1",
+			Tool:   "execution.run_command",
+			Status: "planned",
+			Input: map[string]interface{}{
+				"command": "curl -s https://ifconfig.me",
+				"host":    "192.168.3.100",
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("apply diagnosis: %v", err)
+	}
+	if len(dispatchResult.Notifications) < 2 {
+		t.Fatalf("expected diagnosis + approval notifications, got %+v", dispatchResult.Notifications)
+	}
+
+	session, err := service.GetSession(context.Background(), result.SessionID)
+	if err != nil {
+		t.Fatalf("get session: %v", err)
+	}
+	if session.Status != "pending_approval" {
+		t.Fatalf("expected pending approval session, got %+v", session)
+	}
+	if len(session.Executions) != 1 {
+		t.Fatalf("expected one execution draft, got %+v", session.Executions)
+	}
+	if session.Executions[0].Command != "curl -s https://ifconfig.me" {
+		t.Fatalf("expected command from planned execution step, got %+v", session.Executions[0])
+	}
+	if !hasTimelineEvent(session.Timeline, "execution_draft_ready") {
+		t.Fatalf("expected execution_draft_ready timeline, got %+v", session.Timeline)
+	}
+	if hasTimelineEvent(session.Timeline, "chat_answer_completed") {
+		t.Fatalf("expected session to wait for approval, got %+v", session.Timeline)
+	}
+	if !strings.Contains(dispatchResult.Notifications[0].Body, "curl -s https://ifconfig.me") {
+		t.Fatalf("expected diagnosis message to contain planned command, got %s", dispatchResult.Notifications[0].Body)
+	}
+	if !strings.Contains(dispatchResult.Notifications[1].Body, "curl -s https://ifconfig.me") {
+		t.Fatalf("expected approval message to contain planned command, got %s", dispatchResult.Notifications[1].Body)
+	}
+}
+
 func TestCreateCapabilityApprovalAndApproveDispatchesCapabilityRequest(t *testing.T) {
 	t.Parallel()
 

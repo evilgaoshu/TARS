@@ -737,6 +737,9 @@ func (s *Service) ApplyDiagnosis(_ context.Context, eventID string, diagnosis co
 	record.detail.Status = "open"
 	record.desenseMap = cloneStringMap(diagnosis.DesenseMap)
 	diagnosis = rehydrateDiagnosisOutput(diagnosis, s.currentDesensitizationConfig())
+	if diagnosis.ExecutionHint == "" {
+		diagnosis.ExecutionHint = firstPlannedExecutionCommand(diagnosis.ToolPlan)
+	}
 	now := time.Now().UTC()
 	route := approvalrouting.Route{}
 	if s.opts.ApprovalEnabled {
@@ -1482,6 +1485,28 @@ func firstNonEmpty(values ...string) string {
 		if strings.TrimSpace(value) != "" {
 			return strings.TrimSpace(value)
 		}
+	}
+	return ""
+}
+
+func firstPlannedExecutionCommand(steps []contracts.ToolPlanStep) string {
+	for _, step := range steps {
+		if strings.TrimSpace(step.Tool) != "execution.run_command" {
+			continue
+		}
+		if command := firstNonEmpty(mapString(step.ResolvedInput, "command"), mapString(step.Input, "command")); command != "" {
+			return command
+		}
+	}
+	return ""
+}
+
+func mapString(values map[string]interface{}, key string) string {
+	if values == nil {
+		return ""
+	}
+	if value, ok := values[key].(string); ok {
+		return value
 	}
 	return ""
 }
