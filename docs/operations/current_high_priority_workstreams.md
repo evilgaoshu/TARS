@@ -87,9 +87,9 @@
 
 ## 当前主线 4：GitHub 首次基线与 CI/CD 边界
 
-> **状态（2026-04-11）：研究与技术 gate 已基本完成，仍待团队 sign-off。**  
-> 凭据轮换审计于 2026-04-08 完成：全部凭据类均已确认为非生产值（`invalid/non-live`），当前已无工程阻塞项。  
-> 进入实际 push 前，仍需确认 `main` 分支保护 / required checks、rotation window 批准状态与首次 baseline 版本。
+> **状态（2026-04-23）：baseline publish gate 已完成文档化，等待 owner 对 tracked baseline candidate 与 GitHub settings 执行做最终 sign-off。**  
+> 凭据轮换审计于 2026-04-08 完成：全部凭据类均已确认为非生产值（`invalid/non-live`），当前结论为 `rotation window closed / no rotation required`，不是工程 blocker。  
+> 本轮已新增 EVI-14 spec 并把 required checks、branch protection 建议和首次 baseline 操作清单固定为文档；后续只剩 owner 决策与真实执行步骤。
 
 **目标**
 
@@ -100,17 +100,19 @@
 **先看**
 
 - [github_migration_prep_runbook.md](./github_migration_prep_runbook.md)
+- [../../specs/evi-14-github-baseline-publish-gate.md](../../specs/evi-14-github-baseline-publish-gate.md)
 - [github_publishable_baseline.md](./github_publishable_baseline.md)
 - [github_actions_baseline_scope.md](./github_actions_baseline_scope.md)
 - [github_cicd_and_secret_management_plan.md](./github_cicd_and_secret_management_plan.md)
 - [records/credential_rotation_execution_tracker_2026-04-08.md](./records/credential_rotation_execution_tracker_2026-04-08.md)
+- [records/github-baseline-signoff-2026-04-23.md](./records/github-baseline-signoff-2026-04-23.md)
 
 **完成标准**
 
 - 仓库能区分"可发布内容"和"共享机本地状态"。✅（研究已完成）
-- required checks 只跑 L0 / L1 / L2 / static demo build。✅（workflow 已收口）
+- required checks 只跑 `L0 Pre-check` / `L1 MVP Checks` / `L2 Security Regression` / `Secret Scan` / `Static Demo Build`。✅（workflow 与 spec 已收口）
 - 公开仓库前能先看懂"还差哪些内部信息卫生清理"。✅（凭据扫描已完成）
-- branch policy / baseline sign-off / rotation window 这类人工门槛已明确。⬜（待团队确认）
+- branch policy / baseline sign-off / rotation window 这类人工门槛已明确。✅（已文档化；待 owner 执行最终 sign-off 与 GitHub 设置）
 
 ## 当前主线 5：SSH 凭据托管
 
