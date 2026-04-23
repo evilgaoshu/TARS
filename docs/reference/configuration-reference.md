@@ -108,6 +108,12 @@ export TARS_POSTGRES_DSN="postgres:///tars?host=/var/run/postgresql"
 - 推理 Provider、Telegram 等其它 secrets 暂仍使用 secret ref 与私有 secret backend/file 注入，避免把模型 key 等凭据塞进普通 JSON 文档。
 - `automations / skills / extensions` 暂保留现有文件或 state 文件语义，后续再按 lifecycle 需求决定 JSON document 或专用表。
 
+**SSH custody governance**:
+- `TARS_SECRET_CUSTODY_KEY_ID` must be updated together with each custody-key rotation. If stored SSH material was encrypted under an older `key_id`, TARS now fails closed and requires the operator to re-upload credential material.
+- `rotation_required` is enforced at resolve time and blocks SSH execution/health checks. Operators must replace credential material to clear it; `enable` is not a bypass path.
+- `ExpiresAt` is a lazy rotation trigger. Once the expiry timestamp passes, the credential is auto-marked `rotation_required` on next use.
+- Break-glass `ops-token` can perform explicit approval actions for emergency handling, but it must not be used to read SSH password/private-key material. Emergency approvals must remain auditable with source/actor/action metadata.
+
 #### SQLite-vec (向量存储)
 
 | 变量 | 类型 | 默认值 | 必需 | 说明 |

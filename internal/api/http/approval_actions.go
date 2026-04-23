@@ -82,6 +82,15 @@ func executionActionHandler(deps Dependencies, action string) http.HandlerFunc {
 			return
 		}
 
+		auditMetadata := map[string]any{
+			"execution_id": executionID,
+			"action":       action,
+		}
+		for key, value := range principalAuditMetadata(principal) {
+			auditMetadata[key] = value
+		}
+		auditOpsWrite(r.Context(), deps, "execution", executionID, "approval_endpoint_invoked", auditMetadata)
+
 		executionDetail, err := deps.Workflow.GetExecution(r.Context(), executionID)
 		if err != nil {
 			if errors.Is(err, contracts.ErrNotFound) {

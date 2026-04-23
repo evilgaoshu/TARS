@@ -129,7 +129,7 @@ describe('OpsActionView', () => {
     fetchReasoningPromptConfigMock.mockReset();
     fetchReasoningPromptConfigMock.mockResolvedValue({ ...resolvedConfig, config: { system_prompt: '', user_prompt_template: '' } });
     fetchSecretsInventoryMock.mockReset();
-    fetchSecretsInventoryMock.mockResolvedValue({ configured: true, loaded: true, path: '/tmp/secrets.yaml', updated_at: '2026-03-29T08:00:00Z', items: [] });
+    fetchSecretsInventoryMock.mockResolvedValue({ configured: true, loaded: true, path: '/tmp/secrets.yaml', updated_at: '2026-03-29T08:00:00Z', custody_configured: true, custody_key_id: 'local', ssh_credential_configured: true, items: [] });
     fetchSSHCredentialsMock.mockReset();
     fetchSSHCredentialsMock.mockResolvedValue({ configured: false, items: [] });
     createSSHCredentialMock.mockReset();
@@ -315,6 +315,19 @@ describe('OpsActionView', () => {
   });
 
   it('renders ssh credential governance metadata in the secrets tab', async () => {
+    fetchSecretsInventoryMock.mockResolvedValueOnce({
+      configured: true,
+      loaded: true,
+      path: '/tmp/secrets.yaml',
+      updated_at: '2026-03-29T08:00:00Z',
+      custody_configured: true,
+      custody_key_id: 'key-2026-04',
+      ssh_credential_configured: true,
+      items: [
+        { owner_type: 'ssh_credential', owner_id: 'ops-key', key: 'material', set: false, status: 'rotation_required' },
+        { owner_type: 'ssh_credential', owner_id: 'missing-key', key: 'material', set: false, status: 'missing' },
+      ],
+    });
     fetchSSHCredentialsMock.mockResolvedValueOnce({
       configured: true,
       items: [
@@ -336,9 +349,12 @@ describe('OpsActionView', () => {
 
     expect(container.textContent).toContain('Ops key');
     expect(container.textContent).toContain('rotation_required');
+    expect(container.textContent).toContain('key-2026-04');
+    expect(container.textContent).toContain('missing');
     expect(container.textContent).toContain('Last rotated');
     expect(container.textContent).toContain('Expires');
     expect(container.textContent).toContain('2026');
+    expect(container.textContent).not.toContain('Enable');
 
     await cleanupRenderedView(root, container);
   });
@@ -497,6 +513,28 @@ describe('OpsActionView', () => {
     const storeButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent?.includes('Store SSH Credential')) as HTMLButtonElement | undefined;
     expect(storeButton).toBeTruthy();
     expect(storeButton?.disabled).toBe(true);
+
+    await cleanupRenderedView(root, container);
+  });
+
+  it('does not render raw secret refs in referenced secrets inventory', async () => {
+    fetchSecretsInventoryMock.mockResolvedValueOnce({
+      configured: true,
+      loaded: true,
+      path: '/tmp/secrets.yaml',
+      updated_at: '2026-03-29T08:00:00Z',
+      custody_configured: false,
+      ssh_credential_configured: false,
+      items: [
+        { owner_type: 'connector', owner_id: 'prometheus-main', key: 'bearer_token', set: false, status: 'missing' },
+      ],
+    });
+
+    const { container, root } = await renderOpsSecretsView();
+
+    expect(container.textContent).toContain('prometheus-main');
+    expect(container.textContent).toContain('missing');
+    expect(container.textContent).not.toContain('secret://');
 
     await cleanupRenderedView(root, container);
   });

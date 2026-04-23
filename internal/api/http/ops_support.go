@@ -224,6 +224,17 @@ func auditOpsWrite(ctx context.Context, deps Dependencies, resourceType string, 
 	})
 }
 
+func principalAuditMetadata(principal access.Principal) map[string]any {
+	metadata := map[string]any{
+		"actor_source": strings.TrimSpace(principal.Source),
+		"break_glass":  strings.EqualFold(strings.TrimSpace(principal.Source), "ops-token"),
+	}
+	if principal.User != nil {
+		metadata["actor_user_id"] = strings.TrimSpace(principal.User.UserID)
+	}
+	return metadata
+}
+
 func metadataTraceID(metadata map[string]any) string {
 	if len(metadata) == 0 {
 		return ""

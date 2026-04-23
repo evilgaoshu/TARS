@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -145,11 +146,14 @@ func handleSecretsGet(w http.ResponseWriter, r *http.Request, deps Dependencies)
 		storeSnapshot = deps.Secrets.Snapshot()
 	}
 	response := dto.SecretsInventoryResponse{
-		Configured: strings.TrimSpace(storeSnapshot.Path) != "",
-		Loaded:     storeSnapshot.Loaded,
-		Path:       storeSnapshot.Path,
-		UpdatedAt:  storeSnapshot.UpdatedAt,
-		Items:      listSecretDescriptors(deps, storeSnapshot),
+		Configured:              strings.TrimSpace(storeSnapshot.Path) != "",
+		Loaded:                  storeSnapshot.Loaded,
+		Path:                    storeSnapshot.Path,
+		UpdatedAt:               storeSnapshot.UpdatedAt,
+		CustodyConfigured:       deps.SSHCredentials != nil && deps.SSHCredentials.Configured(),
+		CustodyKeyID:            sshCustodyKeyID(deps),
+		SSHCredentialConfigured: deps.SSHCredentials != nil && deps.SSHCredentials.Configured(),
+		Items:                   listSecretDescriptors(deps, storeSnapshot),
 	}
 	auditOpsRead(r.Context(), deps, "secret_inventory", "runtime", "get", map[string]any{"count": len(response.Items)})
 	writeJSON(w, http.StatusOK, response)
@@ -216,17 +220,24 @@ func listSecretDescriptors(deps Dependencies, snapshot secrets.Snapshot) []dto.S
 	items := make([]dto.SecretDescriptor, 0)
 	seen := make(map[string]struct{})
 	for _, item := range connectorSecretDescriptors(deps.Connectors, snapshot) {
-		if _, ok := seen[item.Ref+":"+item.OwnerType+":"+item.OwnerID+":"+item.Key]; ok {
+		if _, ok := seen[item.OwnerType+":"+item.OwnerID+":"+item.Key+":"+item.Status]; ok {
 			continue
 		}
-		seen[item.Ref+":"+item.OwnerType+":"+item.OwnerID+":"+item.Key] = struct{}{}
+		seen[item.OwnerType+":"+item.OwnerID+":"+item.Key+":"+item.Status] = struct{}{}
 		items = append(items, item)
 	}
 	for _, item := range providerSecretDescriptors(deps.Providers, snapshot) {
-		if _, ok := seen[item.Ref+":"+item.OwnerType+":"+item.OwnerID+":"+item.Key]; ok {
+		if _, ok := seen[item.OwnerType+":"+item.OwnerID+":"+item.Key+":"+item.Status]; ok {
 			continue
 		}
-		seen[item.Ref+":"+item.OwnerType+":"+item.OwnerID+":"+item.Key] = struct{}{}
+		seen[item.OwnerType+":"+item.OwnerID+":"+item.Key+":"+item.Status] = struct{}{}
+		items = append(items, item)
+	}
+	for _, item := range sshCredentialSecretDescriptors(deps, snapshot) {
+		if _, ok := seen[item.OwnerType+":"+item.OwnerID+":"+item.Key+":"+item.Status]; ok {
+			continue
+		}
+		seen[item.OwnerType+":"+item.OwnerID+":"+item.Key+":"+item.Status] = struct{}{}
 		items = append(items, item)
 	}
 	sort.SliceStable(items, func(i, j int) bool {
@@ -249,17 +260,17 @@ func connectorSecretDescriptors(manager *connectors.Manager, snapshot secrets.Sn
 	out := make([]dto.SecretDescriptor, 0)
 	for _, entry := range entries {
 		for key, ref := range entry.Config.SecretRefs {
-			meta, _ := snapshot.Entries[ref]
-			out = append(out, dto.SecretDescriptor{
-				Ref:       ref,
-				OwnerType: "connector",
-				OwnerID:   entry.Metadata.ID,
-				Key:       key,
-				Set:       meta.Set,
-				UpdatedAt: meta.UpdatedAt,
-				Source:    meta.Source,
-			})
-		}
+		meta, _ := snapshot.Entries[ref]
+		out = append(out, dto.SecretDescriptor{
+			OwnerType: "connector",
+			OwnerID:   entry.Metadata.ID,
+			Key:       key,
+			Set:       meta.Set,
+			UpdatedAt: meta.UpdatedAt,
+			Source:    meta.Source,
+			Status:    map[bool]string{true: "active", false: "missing"}[meta.Set],
+		})
+	}
 	}
 	return out
 }
@@ -277,16 +288,48 @@ func providerSecretDescriptors(manager *reasoning.ProviderManager, snapshot secr
 		}
 		meta, _ := snapshot.Entries[ref]
 		out = append(out, dto.SecretDescriptor{
-			Ref:       ref,
 			OwnerType: "provider",
 			OwnerID:   entry.ID,
 			Key:       "api_key",
 			Set:       meta.Set,
 			UpdatedAt: meta.UpdatedAt,
 			Source:    meta.Source,
+			Status:    map[bool]string{true: "active", false: "missing"}[meta.Set],
 		})
 	}
 	return out
+}
+
+func sshCredentialSecretDescriptors(deps Dependencies, snapshot secrets.Snapshot) []dto.SecretDescriptor {
+	if deps.SSHCredentials == nil || !deps.SSHCredentials.Configured() {
+		return []dto.SecretDescriptor{{OwnerType: "ssh_credential", OwnerID: "custody", Key: "backend", Set: false, Status: "custody_not_configured"}}
+	}
+	items, err := deps.SSHCredentials.Inventory(context.Background())
+	if err != nil {
+		return []dto.SecretDescriptor{{OwnerType: "ssh_credential", OwnerID: "custody", Key: "backend", Set: false, Status: "custody_not_configured"}}
+	}
+	out := make([]dto.SecretDescriptor, 0, len(items))
+	for _, item := range items {
+		status := item.Status
+		set := status != "missing" && status != "invalid_secret_ref" && status != "custody_not_configured"
+		out = append(out, dto.SecretDescriptor{
+			OwnerType: "ssh_credential",
+			OwnerID:   item.CredentialID,
+			Key:       "material",
+			Set:       set,
+			UpdatedAt: item.UpdatedAt,
+			Source:    firstTemplateValue(snapshot.Path, "ssh_custody"),
+			Status:    status,
+		})
+	}
+	return out
+}
+
+func sshCustodyKeyID(deps Dependencies) string {
+	if deps.SSHCredentials == nil {
+		return ""
+	}
+	return deps.SSHCredentials.CurrentKeyID()
 }
 
 func connectorTemplatesFromSnapshot(deps Dependencies) []dto.ConnectorTemplate {

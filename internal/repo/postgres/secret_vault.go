@@ -25,6 +25,13 @@ type EncryptedSecretVault struct {
 	keyID string
 }
 
+func (v *EncryptedSecretVault) KeyID() string {
+	if v == nil {
+		return ""
+	}
+	return strings.TrimSpace(v.keyID)
+}
+
 type sealedSecret struct {
 	Nonce      []byte
 	Ciphertext []byte
@@ -94,7 +101,14 @@ func (v *EncryptedSecretVault) Get(ctx context.Context, ref string) ([]byte, err
 		}
 		return nil, err
 	}
-	return openSecret(v.key, sealed)
+	plaintext, err := openSecret(v.key, sealed)
+	if err != nil {
+		if keyID != "" && strings.TrimSpace(keyID) != strings.TrimSpace(v.keyID) {
+			return nil, sshcredentials.ErrKeyIDMismatch
+		}
+		return nil, sshcredentials.ErrSecretMissing
+	}
+	return plaintext, nil
 }
 
 func (v *EncryptedSecretVault) Delete(ctx context.Context, ref string) error {

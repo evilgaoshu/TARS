@@ -218,6 +218,8 @@ export const OpsActionView = () => {
   const [secretsUpdatedAt, setSecretsUpdatedAt] = useState<string | undefined>();
   const [secretsLoaded, setSecretsLoaded] = useState(false);
   const [secretsConfigured, setSecretsConfigured] = useState(false);
+  const [custodyConfigured, setCustodyConfigured] = useState(false);
+  const [custodyKeyID, setCustodyKeyID] = useState<string | undefined>();
   const [secretsLoading, setSecretsLoading] = useState(true);
   const [secretsSaving, setSecretsSaving] = useState(false);
   const [secretsMessage, setSecretsMessage] = useState<FlashMessage | null>(null);
@@ -463,12 +465,14 @@ export const OpsActionView = () => {
     setProvidersConfigured(response.configured);
   };
 
-  const applySecretsResponse = (response: { configured: boolean; loaded: boolean; path?: string; updated_at?: string; items: SecretDescriptor[] }) => {
+  const applySecretsResponse = (response: { configured: boolean; loaded: boolean; path?: string; updated_at?: string; custody_configured?: boolean; custody_key_id?: string; ssh_credential_configured?: boolean; items: SecretDescriptor[] }) => {
     setSecretsInventory(response.items || []);
     setSecretsPath(response.path);
     setSecretsUpdatedAt(response.updated_at);
     setSecretsLoaded(response.loaded);
     setSecretsConfigured(response.configured);
+    setCustodyConfigured(Boolean(response.custody_configured));
+    setCustodyKeyID(response.custody_key_id);
   };
 
   const applySSHCredentialsResponse = (response: SSHCredentialListResponse) => {
@@ -1197,6 +1201,7 @@ export const OpsActionView = () => {
                   </Button>
                 ) : null}
                 <span className="text-xs text-muted-foreground">Metadata is kept in PostgreSQL; secret material is encrypted separately.</span>
+                <span className="text-xs text-muted-foreground">Custody status: {custodyConfigured ? `configured${custodyKeyID ? ` · key_id ${custodyKeyID}` : ''}` : 'not configured'}</span>
               </div>
               <CollapsibleList
                 items={sshCredentials.map((item) => (
@@ -1217,9 +1222,11 @@ export const OpsActionView = () => {
                           Mark rotation required
                         </Button>
                       ) : null}
-                      <Button variant="outline" size="sm" type="button" disabled={secretsSaving || !canSaveSSHCredentialOps} onClick={() => handleSSHCredentialStatus(item.credential_id, item.status === 'active' ? 'disabled' : 'active')}>
-                        {item.status === 'active' ? 'Disable' : 'Enable'}
-                      </Button>
+                      {item.status === 'rotation_required' ? null : (
+                        <Button variant="outline" size="sm" type="button" disabled={secretsSaving || !canSaveSSHCredentialOps} onClick={() => handleSSHCredentialStatus(item.credential_id, item.status === 'active' ? 'disabled' : 'active')}>
+                          {item.status === 'active' ? 'Disable' : 'Enable'}
+                        </Button>
+                      )}
                       <Button variant="destructive" size="sm" type="button" disabled={secretsSaving || !sshCredentialsConfigured || !canSaveSSHCredentialOps} onClick={() => setPendingDeleteSSHCredentialID(item.credential_id)}>
                         Delete
                       </Button>
@@ -1249,14 +1256,15 @@ export const OpsActionView = () => {
 
           {canViewSecretsInventory ? (
           <PanelCard title={t('ops.secrets.referenced')} subtitle={t('ops.secrets.referencedDesc')}>
+            <div className="mb-3 text-xs text-muted-foreground">SSH custody: {custodyConfigured ? 'configured' : 'not configured'}{custodyKeyID ? ` · key_id ${custodyKeyID}` : ''}</div>
             <CollapsibleList 
               items={(secretsInventory || []).map((item) => (
-                <div key={`${item.ref}-${item.owner_id}-${item.key}`} className="flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-2">
+                <div key={`${item.owner_type}-${item.owner_id}-${item.key}-${item.status || 'unknown'}`} className="flex flex-wrap items-start justify-between gap-4 border-b border-border/50 pb-2">
                   <div>
-                    <div className="font-semibold text-foreground">{item.owner_id || item.ref || 'secret ref'}</div>
-                    <div className="text-sm text-muted-foreground">{item.owner_type || 'owner'} · {item.key || 'key'} · {item.ref || 'ref'}</div>
+                    <div className="font-semibold text-foreground">{item.owner_id || 'secret item'}</div>
+                    <div className="text-sm text-muted-foreground">{item.owner_type || 'owner'} · {item.key || 'key'}{item.status ? ` · ${item.status}` : ''}</div>
                   </div>
-                  <span className={cn('text-sm font-semibold', item.set ? 'text-success' : 'text-danger')}>{item.set ? t('ops.secrets.set') : t('ops.secrets.missing')}</span>
+                  <span className={cn('text-sm font-semibold', item.set ? 'text-success' : 'text-danger')}>{item.status || (item.set ? t('ops.secrets.set') : t('ops.secrets.missing'))}</span>
                 </div>
               )) }
             />

@@ -4305,6 +4305,53 @@ func TestConnectorExecutionAndHealthRuntime(t *testing.T) {
 	}
 }
 
+func TestBreakGlassCannotExecuteSSHNativeConnector(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	connectorsPath := dir + "/connectors.yaml"
+	configContent := `connectors:
+  entries:
+    - api_version: tars.connector/v1alpha1
+      kind: connector
+      metadata:
+        id: ssh-main
+        name: ssh
+        display_name: SSH Main
+        vendor: openssh
+        version: 1.0.0
+      spec:
+        type: execution
+        protocol: ssh_native
+      config:
+        values:
+          host: 192.168.3.100
+          port: "22"
+          username: root
+          credential_id: ops-key
+`
+	if err := os.WriteFile(connectorsPath, []byte(configContent), 0o600); err != nil {
+		t.Fatalf("write connectors config: %v", err)
+	}
+	cfg := defaultTestConfig()
+	cfg.Connectors.ConfigPath = connectorsPath
+	system := newTestSystemWithConfig(t, true, true, true, cfg)
+	execResp := performJSONRequest(t, system.handler, http.MethodPost, "/api/v1/connectors/ssh-main/execution/execute", []byte(`{
+  "target_host": "192.168.3.100",
+  "command": "hostname",
+  "service": "sshd",
+  "operator_reason": "break-glass execute"
+}`), map[string]string{
+		"Authorization": "Bearer ops-token",
+	})
+	if execResp.Code != http.StatusForbidden {
+		t.Fatalf("expected break-glass ssh execute to be denied, got %d body=%s", execResp.Code, execResp.Body.String())
+	}
+	if !strings.Contains(execResp.Body.String(), "break_glass_denied") {
+		t.Fatalf("expected break_glass_denied error, got %s", execResp.Body.String())
+	}
+}
+
 func TestConnectorUpgradeRollbackAndBulkExports(t *testing.T) {
 	t.Parallel()
 
@@ -5283,8 +5330,14 @@ func TestPlatformHardeningSecretsTemplatesAndDashboard(t *testing.T) {
 	}
 	var inventory dto.SecretsInventoryResponse
 	decodeRecorderJSON(t, secretsResp, &inventory)
-	if len(inventory.Items) != 2 {
-		t.Fatalf("expected 2 secret descriptors, got %+v", inventory.Items)
+	if len(inventory.Items) != 3 {
+		t.Fatalf("expected 3 secret descriptors including ssh custody summary, got %+v", inventory.Items)
+	}
+	if inventory.CustodyKeyID != "" {
+		t.Fatalf("expected no custody key id without ssh custody, got %+v", inventory)
+	}
+	if strings.Contains(secretsResp.Body.String(), "connector.prometheus-main.bearer_token") {
+		t.Fatalf("expected secrets inventory response to avoid raw secret refs, got %s", secretsResp.Body.String())
 	}
 
 	updateResp := performJSONRequest(t, system.handler, http.MethodPut, "/api/v1/config/secrets", []byte(`{
@@ -5344,6 +5397,63 @@ func TestPlatformHardeningSecretsTemplatesAndDashboard(t *testing.T) {
 	}
 	if !hasAuditEntry(auditLogger.entries, "connector_template", "prometheus-main", "apply") {
 		t.Fatalf("expected connector_template audit entry, got %+v", auditLogger.entries)
+	}
+}
+
+func TestBreakGlassApprovalEndpointAddsAuditMetadata(t *testing.T) {
+	t.Parallel()
+
+	auditLogger := &captureAuditLogger{}
+	system := newTestSystemWithExecutorAndAudit(t, true, true, true, defaultTestConfig(), &fakeExecutor{}, auditLogger)
+	handler := system.handler
+	payload := []byte(`{
+		"status": "firing",
+		"alerts": [
+			{
+				"labels": {
+					"alertname": "HighCPU",
+					"instance": "host-1",
+					"service": "api",
+					"severity": "critical"
+				},
+				"annotations": {
+					"summary": "cpu too high",
+					"user_request": "执行命令查看 api 状态"
+				}
+			}
+		]
+	}`)
+	webhookResp := performJSONRequest(t, handler, http.MethodPost, "/api/v1/webhooks/vmalert", payload, map[string]string{"X-Tars-Signature": "test-signature"})
+	if webhookResp.Code != http.StatusOK {
+		t.Fatalf("unexpected webhook status: %d", webhookResp.Code)
+	}
+	var accepted dto.VMAlertWebhookResponse
+	decodeRecorderJSON(t, webhookResp, &accepted)
+	if err := system.dispatcher.RunOnce(context.Background()); err != nil {
+		t.Fatalf("run dispatcher: %v", err)
+	}
+	sessionResp := performJSONRequest(t, handler, http.MethodGet, "/api/v1/sessions/"+accepted.SessionIDs[0], nil, map[string]string{"Authorization": "Bearer ops-token"})
+	if sessionResp.Code != http.StatusOK {
+		t.Fatalf("unexpected session status: %d body=%s", sessionResp.Code, sessionResp.Body.String())
+	}
+	var sessionDetail dto.SessionDetail
+	decodeRecorderJSON(t, sessionResp, &sessionDetail)
+	executionID := sessionDetail.Executions[0].ExecutionID
+	approveResp := performJSONRequest(t, handler, http.MethodPost, "/api/v1/executions/"+executionID+"/approve", nil, map[string]string{"Authorization": "Bearer ops-token"})
+	if approveResp.Code != http.StatusOK {
+		t.Fatalf("unexpected approve status: %d body=%s", approveResp.Code, approveResp.Body.String())
+	}
+	var found bool
+	for _, entry := range auditLogger.entries {
+		if entry.ResourceType == "execution" && entry.ResourceID == executionID && entry.Action == "approval_endpoint_invoked" {
+			if entry.Metadata["actor_source"] != "ops-token" || entry.Metadata["break_glass"] != true {
+				t.Fatalf("expected break-glass approval audit metadata, got %+v", entry)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected approval audit entry, got %+v", auditLogger.entries)
 	}
 }
 

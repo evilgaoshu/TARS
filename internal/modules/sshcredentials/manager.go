@@ -30,6 +30,9 @@ var (
 	ErrDisabled         = errors.New("ssh credential is not active")
 	ErrRotationRequired = errors.New("ssh credential status is rotation_required")
 	ErrHostScope        = errors.New("target host is outside credential scope")
+	ErrSecretMissing    = errors.New("ssh credential secret material is missing")
+	ErrKeyIDMismatch    = errors.New("ssh credential custody key_id does not match current configuration")
+	ErrBreakGlassDenied = errors.New("break-glass access cannot resolve ssh credential material")
 )
 
 var credentialIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{1,127}$`)
@@ -118,6 +121,19 @@ type SecretMetadata struct {
 	Algorithm string
 }
 
+type InventoryItem struct {
+	CredentialID string
+	Status       string
+	UpdatedAt    time.Time
+}
+
+type ResolveOptions struct {
+	TargetHost       string
+	ActorID          string
+	ActorSource      string
+	BreakGlassAccess bool
+}
+
 type Manager struct {
 	repo  Repository
 	vault SecretBackend
@@ -140,6 +156,13 @@ func (m *Manager) Configured() bool {
 	return m != nil && m.repo != nil && m.vault != nil
 }
 
+func (m *Manager) CurrentKeyID() string {
+	if m == nil || m.vault == nil {
+		return ""
+	}
+	return currentVaultKeyID(m.vault)
+}
+
 func (m *Manager) List(ctx context.Context) ([]Credential, error) {
 	if !m.Configured() {
 		return nil, ErrNotConfigured
@@ -158,6 +181,46 @@ func (m *Manager) List(ctx context.Context) ([]Credential, error) {
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].CredentialID < out[j].CredentialID
 	})
+	return out, nil
+}
+
+func (m *Manager) Inventory(ctx context.Context) ([]InventoryItem, error) {
+	if !m.Configured() {
+		return nil, ErrNotConfigured
+	}
+	items, err := m.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]InventoryItem, 0, len(items))
+	currentKeyID := strings.TrimSpace(currentVaultKeyID(m.vault))
+	for _, item := range items {
+		if item.Status == StatusDeleted {
+			continue
+		}
+		status := item.Status
+		if status == "" {
+			status = StatusActive
+		}
+		if item.ExpiresAt != nil && !item.ExpiresAt.IsZero() && !item.ExpiresAt.After(m.now()) {
+			status = StatusRotationRequired
+		}
+		if strings.TrimSpace(item.SecretRef) == "" {
+			status = "missing"
+		} else {
+			meta, ok, metaErr := m.vault.Metadata(ctx, item.SecretRef)
+			switch {
+			case metaErr != nil:
+				status = "invalid_secret_ref"
+			case !ok || !meta.Set:
+				status = "missing"
+			case currentKeyID != "" && strings.TrimSpace(meta.KeyID) != "" && strings.TrimSpace(meta.KeyID) != currentKeyID:
+				status = "invalid_secret_ref"
+			}
+		}
+		out = append(out, InventoryItem{CredentialID: item.CredentialID, Status: status, UpdatedAt: item.UpdatedAt})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].CredentialID < out[j].CredentialID })
 	return out, nil
 }
 
@@ -223,6 +286,7 @@ func (m *Manager) Update(ctx context.Context, credentialID string, input UpdateI
 		if err := m.storeMaterial(ctx, cred, material); err != nil {
 			return Credential{}, err
 		}
+		cred.Status = StatusActive
 		cred.LastRotatedAt = now
 	}
 	if err := m.repo.Save(ctx, cred); err != nil {
@@ -245,6 +309,9 @@ func (m *Manager) SetStatus(ctx context.Context, credentialID string, status str
 	}
 	if !ok || cred.Status == StatusDeleted {
 		return Credential{}, ErrNotFound
+	}
+	if cred.Status == StatusRotationRequired && status == StatusActive {
+		return Credential{}, ErrRotationRequired
 	}
 	cred.Status = status
 	cred.UpdatedBy = strings.TrimSpace(actorID)
@@ -282,6 +349,10 @@ func (m *Manager) Delete(ctx context.Context, credentialID string, actorID strin
 }
 
 func (m *Manager) Resolve(ctx context.Context, credentialID string, targetHost string) (ResolvedCredential, error) {
+	return m.ResolveWithOptions(ctx, credentialID, ResolveOptions{TargetHost: targetHost})
+}
+
+func (m *Manager) ResolveWithOptions(ctx context.Context, credentialID string, opts ResolveOptions) (ResolvedCredential, error) {
 	if !m.Configured() {
 		return ResolvedCredential{}, ErrNotConfigured
 	}
@@ -292,14 +363,37 @@ func (m *Manager) Resolve(ctx context.Context, credentialID string, targetHost s
 	if !ok || cred.Status == StatusDeleted {
 		return ResolvedCredential{}, ErrNotFound
 	}
+	if opts.BreakGlassAccess {
+		return ResolvedCredential{}, ErrBreakGlassDenied
+	}
+	if expiresAt := cred.ExpiresAt; expiresAt != nil && !expiresAt.IsZero() && !expiresAt.After(m.now()) {
+		cred.Status = StatusRotationRequired
+		cred.UpdatedBy = firstNonEmpty(strings.TrimSpace(opts.ActorID), "system")
+		cred.UpdatedAt = m.now()
+		if err := m.repo.Save(ctx, cred); err != nil {
+			return ResolvedCredential{}, err
+		}
+		m.auditRotationAutoTriggered(ctx, cred, opts)
+	}
 	if cred.Status == StatusRotationRequired {
 		return ResolvedCredential{}, errors.Join(ErrDisabled, ErrRotationRequired)
 	}
 	if cred.Status != StatusActive {
 		return ResolvedCredential{}, ErrDisabled
 	}
-	if !hostAllowed(cred.HostScope, targetHost) {
+	if !hostAllowed(cred.HostScope, opts.TargetHost) {
 		return ResolvedCredential{}, ErrHostScope
+	}
+	currentKeyID := strings.TrimSpace(currentVaultKeyID(m.vault))
+	meta, ok, err := m.vault.Metadata(ctx, cred.SecretRef)
+	if err != nil {
+		return ResolvedCredential{}, err
+	}
+	if !ok || !meta.Set {
+		return ResolvedCredential{}, ErrSecretMissing
+	}
+	if currentKeyID != "" && strings.TrimSpace(meta.KeyID) != "" && strings.TrimSpace(meta.KeyID) != currentKeyID {
+		return ResolvedCredential{}, ErrKeyIDMismatch
 	}
 	material, err := m.vault.Get(ctx, cred.SecretRef)
 	if err != nil {
@@ -318,6 +412,16 @@ func (m *Manager) Resolve(ctx context.Context, credentialID string, targetHost s
 	case AuthTypePrivateKey:
 		resolved.PrivateKey = string(material)
 		if cred.PassphraseSecretRef != "" {
+			passphraseMeta, ok, err := m.vault.Metadata(ctx, cred.PassphraseSecretRef)
+			if err != nil {
+				return ResolvedCredential{}, err
+			}
+			if !ok || !passphraseMeta.Set {
+				return ResolvedCredential{}, ErrSecretMissing
+			}
+			if currentKeyID != "" && strings.TrimSpace(passphraseMeta.KeyID) != "" && strings.TrimSpace(passphraseMeta.KeyID) != currentKeyID {
+				return ResolvedCredential{}, ErrKeyIDMismatch
+			}
 			passphrase, err := m.vault.Get(ctx, cred.PassphraseSecretRef)
 			if err != nil {
 				return ResolvedCredential{}, err
@@ -327,8 +431,17 @@ func (m *Manager) Resolve(ctx context.Context, credentialID string, targetHost s
 	default:
 		return ResolvedCredential{}, fmt.Errorf("unsupported ssh auth type %q", cred.AuthType)
 	}
-	m.auditCredentialUse(ctx, cred, targetHost)
+	m.auditCredentialUse(ctx, cred, opts.TargetHost)
 	return resolved, nil
+}
+
+func currentVaultKeyID(vault SecretBackend) string {
+	type keyIDProvider interface{ KeyID() string }
+	provider, ok := vault.(keyIDProvider)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(provider.KeyID())
 }
 
 func (m *Manager) auditCredentialUse(ctx context.Context, cred Credential, targetHost string) {
@@ -349,6 +462,30 @@ func (m *Manager) auditCredentialUse(ctx context.Context, cred Credential, targe
 			"host_scope":    cred.HostScope,
 			"status":        cred.Status,
 			"target_host":   strings.TrimSpace(targetHost),
+		},
+	})
+}
+
+func (m *Manager) auditRotationAutoTriggered(ctx context.Context, cred Credential, opts ResolveOptions) {
+	if m == nil || m.audit == nil {
+		return
+	}
+	m.audit.Log(ctx, audit.Entry{
+		ResourceType: "ssh_credential",
+		ResourceID:   cred.CredentialID,
+		Action:       "ssh_credential.rotation_auto_triggered",
+		Actor:        firstNonEmpty(strings.TrimSpace(opts.ActorID), "system"),
+		Metadata: map[string]any{
+			"credential_id":    cred.CredentialID,
+			"connector_id":     cred.ConnectorID,
+			"owner_type":       cred.OwnerType,
+			"owner_id":         cred.OwnerID,
+			"actor_source":     strings.TrimSpace(opts.ActorSource),
+			"break_glass":      opts.BreakGlassAccess,
+			"target_host":      strings.TrimSpace(opts.TargetHost),
+			"trigger":          "expires_at",
+			"rotation_required": true,
+			"expires_at":       cred.ExpiresAt,
 		},
 	})
 }
@@ -569,17 +706,22 @@ type MemorySecretBackend struct {
 	mu      sync.RWMutex
 	values  map[string][]byte
 	updated map[string]time.Time
+	meta    map[string]SecretMetadata
+	keyID   string
 }
 
 func NewMemorySecretBackend() *MemorySecretBackend {
-	return &MemorySecretBackend{values: map[string][]byte{}, updated: map[string]time.Time{}}
+	return &MemorySecretBackend{values: map[string][]byte{}, updated: map[string]time.Time{}, meta: map[string]SecretMetadata{}, keyID: "memory"}
 }
 
 func (b *MemorySecretBackend) Put(ctx context.Context, ref string, value []byte, metadata map[string]string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.values[strings.TrimSpace(ref)] = append([]byte(nil), value...)
-	b.updated[strings.TrimSpace(ref)] = time.Now().UTC()
+	trimmed := strings.TrimSpace(ref)
+	now := time.Now().UTC()
+	b.values[trimmed] = append([]byte(nil), value...)
+	b.updated[trimmed] = now
+	b.meta[trimmed] = SecretMetadata{Ref: trimmed, Set: true, UpdatedAt: now, KeyID: b.keyID, Algorithm: "memory"}
 	return nil
 }
 
@@ -598,6 +740,7 @@ func (b *MemorySecretBackend) Delete(ctx context.Context, ref string) error {
 	defer b.mu.Unlock()
 	delete(b.values, strings.TrimSpace(ref))
 	delete(b.updated, strings.TrimSpace(ref))
+	delete(b.meta, strings.TrimSpace(ref))
 	return nil
 }
 
@@ -605,9 +748,9 @@ func (b *MemorySecretBackend) Metadata(ctx context.Context, ref string) (SecretM
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	ref = strings.TrimSpace(ref)
-	updated, ok := b.updated[ref]
+	meta, ok := b.meta[ref]
 	if !ok {
 		return SecretMetadata{}, false, nil
 	}
-	return SecretMetadata{Ref: ref, Set: true, UpdatedAt: updated, Algorithm: "memory"}, true, nil
+	return meta, true, nil
 }

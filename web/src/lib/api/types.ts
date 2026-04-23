@@ -1359,13 +1359,13 @@ export interface SecretValueInput {
 }
 
 export interface SecretDescriptor {
-  ref?: string;
   owner_type?: string;
   owner_id?: string;
   key?: string;
   set: boolean;
   updated_at?: string;
   source?: string;
+  status?: string;
 }
 
 export interface SecretsInventoryResponse {
@@ -1373,6 +1373,9 @@ export interface SecretsInventoryResponse {
   loaded: boolean;
   path?: string;
   updated_at?: string;
+  custody_configured: boolean;
+  custody_key_id?: string;
+  ssh_credential_configured: boolean;
   items: SecretDescriptor[];
 }
 

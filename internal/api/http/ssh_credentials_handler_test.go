@@ -162,6 +162,39 @@ func TestSSHCredentialStatusHandlerSupportsRotationRequiredAuditPath(t *testing.
 	}
 }
 
+func TestSSHCredentialEnableCannotBypassRotationRequired(t *testing.T) {
+	deps := Dependencies{
+		Config: config.Config{OpsAPI: config.OpsAPIConfig{Enabled: true, Token: "local-test-token"}},
+		SSHCredentials: sshcredentials.NewManager(
+			sshcredentials.NewMemoryRepository(),
+			sshcredentials.NewMemorySecretBackend(),
+		),
+	}
+	if _, err := deps.SSHCredentials.Create(context.Background(), sshcredentials.CreateInput{
+		CredentialID:   "ops-key",
+		ConnectorID:    "ssh-main",
+		Username:       "root",
+		AuthType:       sshcredentials.AuthTypePassword,
+		Password:       "super-secret-password",
+		OperatorReason: "test",
+	}); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if _, err := deps.SSHCredentials.SetStatus(context.Background(), "ops-key", sshcredentials.StatusRotationRequired, "admin", "rotate now"); err != nil {
+		t.Fatalf("SetStatus() error = %v", err)
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/ssh-credentials/ops-key/enable", bytes.NewReader([]byte(`{"operator_reason":"try bypass"}`)))
+	req.Header.Set("Authorization", "Bearer local-test-token")
+	sshCredentialRouterHandler(deps)(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "credential_rotation_required") {
+		t.Fatalf("expected rotation-required failure, got body=%s", rec.Body.String())
+	}
+}
+
 func assertSSHCredentialResponseIsMetadataOnly(t *testing.T, body []byte, forbiddenValues ...string) {
 	t.Helper()
 	raw := string(body)
