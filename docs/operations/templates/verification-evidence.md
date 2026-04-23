@@ -1,11 +1,18 @@
 # Shared Lab Verification Evidence Template
 
 - PR URL:
-- Head commit SHA:
+- Runtime validated commit SHA:
+- Evidence commit SHA or docs-only evidence commit SHA:
+- Final PR head commit SHA:
 - Shared lab host: `192.168.3.100`
 - Canonical runtime root: `/data/tars-setup-lab`
 - Verification time (UTC):
 - Verifier:
+
+Field meaning:
+- `Runtime validated commit SHA` is the commit that was actually deployed and checked in the shared lab runtime.
+- `Evidence commit SHA or docs-only evidence commit SHA` is the commit that only adds screenshots, records, or other evidence files after runtime validation.
+- `Final PR head commit SHA` is the latest PR head that must have green GitHub checks before final acceptance.
 
 ## Runtime Identity Check Output
 
@@ -39,4 +46,5 @@ overall:
 
 ## Notes / Blockers
 
+- If `Runtime validated commit SHA` and `Final PR head commit SHA` differ, explain why here, for example: `evidence-only commit with docs/screenshots only; no runtime redeploy required`.
 -
