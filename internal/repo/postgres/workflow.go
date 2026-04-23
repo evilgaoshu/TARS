@@ -1101,6 +1101,9 @@ func (s *Store) ApplyDiagnosis(ctx context.Context, eventID string, diagnosis co
 	status := "open"
 	now := time.Now().UTC()
 	diagnosis = rehydrateDiagnosisOutput(diagnosis, s.currentDesensitizationConfig())
+	if diagnosis.ExecutionHint == "" {
+		diagnosis.ExecutionHint = firstPlannedExecutionCommand(diagnosis.ToolPlan)
+	}
 	var desenseJSON []byte
 	if len(diagnosis.DesenseMap) > 0 {
 		desenseJSON, err = json.Marshal(diagnosis.DesenseMap)
@@ -2651,6 +2654,28 @@ func firstNonEmpty(values ...string) string {
 		if strings.TrimSpace(value) != "" {
 			return strings.TrimSpace(value)
 		}
+	}
+	return ""
+}
+
+func firstPlannedExecutionCommand(steps []contracts.ToolPlanStep) string {
+	for _, step := range steps {
+		if strings.TrimSpace(step.Tool) != "execution.run_command" {
+			continue
+		}
+		if command := firstNonEmpty(mapString(step.ResolvedInput, "command"), mapString(step.Input, "command")); command != "" {
+			return command
+		}
+	}
+	return ""
+}
+
+func mapString(values map[string]interface{}, key string) string {
+	if values == nil {
+		return ""
+	}
+	if value, ok := values[key].(string); ok {
+		return value
 	}
 	return ""
 }
