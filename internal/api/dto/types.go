@@ -1140,21 +1140,24 @@ type SecretValueInput struct {
 }
 
 type SecretDescriptor struct {
-	Ref       string    `json:"ref,omitempty"`
 	OwnerType string    `json:"owner_type,omitempty"`
 	OwnerID   string    `json:"owner_id,omitempty"`
 	Key       string    `json:"key,omitempty"`
 	Set       bool      `json:"set"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	Source    string    `json:"source,omitempty"`
+	Status    string    `json:"status,omitempty"`
 }
 
 type SecretsInventoryResponse struct {
-	Configured bool               `json:"configured"`
-	Loaded     bool               `json:"loaded"`
-	Path       string             `json:"path,omitempty"`
-	UpdatedAt  time.Time          `json:"updated_at,omitempty"`
-	Items      []SecretDescriptor `json:"items"`
+	Configured             bool               `json:"configured"`
+	Loaded                 bool               `json:"loaded"`
+	Path                   string             `json:"path,omitempty"`
+	UpdatedAt              time.Time          `json:"updated_at,omitempty"`
+	CustodyConfigured      bool               `json:"custody_configured"`
+	CustodyKeyID           string             `json:"custody_key_id,omitempty"`
+	SSHCredentialConfigured bool              `json:"ssh_credential_configured"`
+	Items                  []SecretDescriptor `json:"items"`
 }
 
 type SSHCredential struct {

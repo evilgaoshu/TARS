@@ -431,6 +431,9 @@ make live-validate
 - **凭据注入规范**：
   - **No Hardcoded Defaults**：严禁在前端代码中使用 `ops-token` 字面量作为 fallback。
   - **SSH Credential Custody**：SSH 密码/私钥通过 `TARS_SECRET_CUSTODY_KEY` + PostgreSQL encrypted backend 托管，connector 只引用 `credential_id`；推理 Provider 等其它凭据仍优先使用 `secret_ref`。
+  - **Custody Key Rotation**：轮换 `TARS_SECRET_CUSTODY_KEY` 时必须同时更新 `TARS_SECRET_CUSTODY_KEY_ID`，并重新上传受影响 SSH credential 材料；旧 `key_id` 的材料现在会 fail-closed，而不是静默继续使用。
+  - **Break-glass Boundary**：`ops-token` 只允许走显式 approval endpoint 做紧急 approve/deny/request-context/modify-approve；不得读取 SSH password/private-key 明文，不得绕过 approval endpoint。
+  - **Audit Requirement**：break-glass approval 必须在审计中标记 source=`ops-token`、actor、action、execution_id；共享环境验证时要一并核对这条审计证据。
 - **导航分层**：不稳定或未对接的能力在侧边栏导航中会自动降级或隐藏。
 
 ## 9. 当前注意事项

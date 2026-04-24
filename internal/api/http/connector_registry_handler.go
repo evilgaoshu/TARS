@@ -780,6 +780,7 @@ func connectorExecutionHandler(deps Dependencies, connectorID string) http.Handl
 		if !requireOpsAccess(deps, w, r) {
 			return
 		}
+		principal, _ := authenticatedPrincipal(deps, r)
 
 		entry, err := getConnectorEntry(deps, connectorID)
 		if err != nil {
@@ -792,6 +793,10 @@ func connectorExecutionHandler(deps Dependencies, connectorID string) http.Handl
 		}
 		if strings.TrimSpace(entry.Spec.Type) != "execution" {
 			writeError(w, http.StatusBadRequest, "validation_failed", "connector does not support execution runtime")
+			return
+		}
+		if strings.EqualFold(strings.TrimSpace(entry.Spec.Protocol), "ssh_native") && strings.EqualFold(strings.TrimSpace(principal.Source), "ops-token") {
+			writeError(w, http.StatusForbidden, "break_glass_denied", "break-glass access cannot read ssh credential material")
 			return
 		}
 		if !requireSSHCredentialUseAccess(deps, w, r, entry.Spec.Protocol) {
@@ -837,14 +842,18 @@ func connectorExecutionHandler(deps Dependencies, connectorID string) http.Handl
 			writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 			return
 		}
-		auditOpsWrite(r.Context(), deps, "connector_runtime", entry.Metadata.ID, "execute", map[string]any{
+		auditMetadata := map[string]any{
 			"operator_reason": req.OperatorReason,
 			"target_host":     req.TargetHost,
 			"command":         req.Command,
 			"protocol":        entry.Spec.Protocol,
 			"execution_id":    result.ExecutionID,
 			"status":          result.Status,
-		})
+		}
+		for key, value := range principalAuditMetadata(principal) {
+			auditMetadata[key] = value
+		}
+		auditOpsWrite(r.Context(), deps, "connector_runtime", entry.Metadata.ID, "execute", auditMetadata)
 		writeJSON(w, http.StatusOK, dto.ConnectorExecutionResponse{
 			ConnectorID:     entry.Metadata.ID,
 			ExecutionID:     result.ExecutionID,
@@ -873,6 +882,7 @@ func connectorHealthHandler(deps Dependencies, connectorID string) http.HandlerF
 		if !requireOpsAccess(deps, w, r) {
 			return
 		}
+		principal, _ := authenticatedPrincipal(deps, r)
 		entry, err := getConnectorEntry(deps, connectorID)
 		if err != nil {
 			writeConnectorError(w, err)
@@ -884,6 +894,10 @@ func connectorHealthHandler(deps Dependencies, connectorID string) http.HandlerF
 		}
 		if err := connectors.ValidateRuntimeManifest(entry, "", "", nil); err != nil {
 			writeConnectorError(w, err)
+			return
+		}
+		if strings.EqualFold(strings.TrimSpace(entry.Spec.Protocol), "ssh_native") && strings.EqualFold(strings.TrimSpace(principal.Source), "ops-token") {
+			writeError(w, http.StatusForbidden, "break_glass_denied", "break-glass access cannot read ssh credential material")
 			return
 		}
 		if !requireSSHCredentialUseAccess(deps, w, r, entry.Spec.Protocol) {
@@ -902,12 +916,16 @@ func connectorHealthHandler(deps Dependencies, connectorID string) http.HandlerF
 			writeConnectorError(w, err)
 			return
 		}
-		auditOpsWrite(r.Context(), deps, "connector_runtime", entry.Metadata.ID, "health_check", map[string]any{
+		auditMetadata := map[string]any{
 			"status":     state.Health.Status,
 			"summary":    state.Health.Summary,
 			"protocol":   entry.Spec.Protocol,
 			"compatible": state.Compatibility.Compatible,
-		})
+		}
+		for key, value := range principalAuditMetadata(principal) {
+			auditMetadata[key] = value
+		}
+		auditOpsWrite(r.Context(), deps, "connector_runtime", entry.Metadata.ID, "health_check", auditMetadata)
 		writeJSON(w, http.StatusOK, lifecycleStateToDTO(state))
 	}
 }

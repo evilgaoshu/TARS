@@ -217,6 +217,12 @@ func writeSSHCredentialError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, "credential_rotation_required", "ssh credential rotation is required before use")
 	case errors.Is(err, sshcredentials.ErrDisabled):
 		writeError(w, http.StatusConflict, "credential_disabled", "ssh credential is not active")
+	case errors.Is(err, sshcredentials.ErrSecretMissing):
+		writeError(w, http.StatusConflict, "credential_secret_missing", "ssh credential secret material is missing or invalid")
+	case errors.Is(err, sshcredentials.ErrKeyIDMismatch):
+		writeError(w, http.StatusConflict, "credential_key_id_mismatch", "ssh credential custody key_id does not match current configuration")
+	case errors.Is(err, sshcredentials.ErrBreakGlassDenied):
+		writeError(w, http.StatusForbidden, "break_glass_denied", "break-glass access cannot read ssh credential material")
 	case errors.Is(err, sshcredentials.ErrHostScope):
 		writeError(w, http.StatusForbidden, "host_scope_denied", "target host is outside credential scope")
 	default:
