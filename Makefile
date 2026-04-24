@@ -19,6 +19,7 @@
 	secret-scan \
 	secret-scan-regression \
 	static-demo-build \
+	replay-ssh-rotation-fixture \
 	web-install \
 	web-smoke \
 	deploy-sync \
@@ -113,6 +114,9 @@ secret-scan-regression:
 static-demo-build:
 	@bash $(CI_DIR)/static-demo-build.sh
 
+replay-ssh-rotation-fixture:
+	@bash $(SCRIPTS)/replay_ssh_credential_rotation_fixture.sh
+
 # ─── L3: Playwright UI smoke（依赖共享环境）──────────────────────────────────
 web-smoke:
 	@bash $(CI_DIR)/web-smoke.sh
@@ -180,6 +184,7 @@ help:
 	@echo "    make secret-scan         # publishable non-test tree secret scan"
 	@echo "    make secret-scan-regression # secret-scan scope/allowlist regression"
 	@echo "    make static-demo-build   # web build for static demo / Pages"
+	@echo "    make replay-ssh-rotation-fixture # shared SSH credential rotation replay fixture"
 	@echo "    make web-smoke           # Playwright UI smoke (默认 shared env)"
 	@echo ""
 	@echo "  部署与共享环境验证:"

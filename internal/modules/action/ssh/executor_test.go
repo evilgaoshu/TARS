@@ -403,6 +403,24 @@ func TestCredentialAuthMethodsAcceptPrivateKeysAndPassphrases(t *testing.T) {
 	}
 }
 
+func TestRunWithCredentialIgnoresGlobalPrivateKeyPathForPasswordOnlyCredential(t *testing.T) {
+	address := startTestSSHServer(t, "root", "pw", "native-ok", 0)
+	exec := NewExecutor(Config{
+		ConnectTimeout:         time.Second,
+		CommandTimeout:         time.Second,
+		DisableHostKeyChecking: true,
+		PrivateKeyPath:         "/path/that/does/not/exist",
+	})
+
+	result, err := exec.RunWithCredential(context.Background(), address, "printf ok", CredentialConfig{User: "root", Password: "pw"})
+	if err != nil {
+		t.Fatalf("RunWithCredential() error = %v", err)
+	}
+	if result.Output != "native-ok" || result.ExitCode != 0 || result.TimedOut {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+}
+
 func TestHostKeyCallbackBranches(t *testing.T) {
 	t.Parallel()
 

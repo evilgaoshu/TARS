@@ -15,3 +15,4 @@
 ## 安全与轮换记录
 
 - [credential_rotation_execution_tracker_2026-04-08.md](./credential_rotation_execution_tracker_2026-04-08.md) - 凭据轮换与 owner 确认追踪
+- [evi-17-ssh-credential-rotation-validation.md](./evi-17-ssh-credential-rotation-validation.md) - `192.168.3.100 -> 192.168.3.9` SSH credential rotation fixture 运行记录
