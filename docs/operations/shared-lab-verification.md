@@ -101,6 +101,26 @@ After the script passes:
 4. Fill `docs/operations/templates/verification-evidence.md`.
 5. If PM asks for committed evidence, save the filled record under `docs/operations/records/EVI-11-PR{number}-{date}.md` and include it in the PR.
 
+## EVI-17 SSH Rotation Fixture
+
+For the SSH credential rotation replay tracked by EVI-17, use the dedicated fixture entry point instead of hand-editing curl snippets:
+
+```sh
+TARS_REMOTE_HOST=192.168.3.100 \
+TARS_REMOTE_USER=root \
+TARS_REMOTE_BASE_DIR=/root/tars-dev \
+TARS_EVI17_AUTH_TYPE=password \
+TARS_EVI17_PASSWORD='<secret injected outside repo>' \
+bash scripts/replay_ssh_credential_rotation_fixture.sh
+```
+
+Important notes for this replay:
+
+1. The script creates a temporary non-breakglass `local_token` provider because `ssh_native` intentionally rejects the break-glass ops token.
+2. The script records the actual live runtime root instead of assuming `/data/tars-setup-lab`; if the shared host is still serving `/root/tars-dev`, the evidence file must say so explicitly.
+3. Do not paste password, private-key, passphrase, or raw token values into the issue, PR, or evidence markdown.
+4. Save the resulting evidence under `docs/operations/records/evi-17-ssh-credential-rotation-validation.md`.
+
 ### Evidence Commits And PR Head Movement
 
 Evidence commits can move the PR head after runtime validation. That is expected and does not automatically invalidate the shared-lab result.

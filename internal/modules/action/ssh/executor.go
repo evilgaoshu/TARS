@@ -178,6 +178,9 @@ func (e *Executor) RunWithCredential(ctx context.Context, targetHost string, com
 		port = 22
 	}
 	privateKeyPath := strings.TrimSpace(e.cfg.PrivateKeyPath)
+	if strings.TrimSpace(credential.Password) != "" && strings.TrimSpace(credential.PrivateKey) == "" {
+		privateKeyPath = ""
+	}
 	cleanup := func() {}
 	if strings.TrimSpace(credential.PrivateKey) != "" {
 		tempPath, release, err := privateKeyTempFileFactory(credential.PrivateKey)
