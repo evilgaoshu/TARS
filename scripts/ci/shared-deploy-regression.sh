@@ -115,16 +115,28 @@ test_check_shared_lab_script_enforces_canonical_runtime_and_endpoints() {
     fail "check-shared-lab should support an explicit session URL input"
   grep -q 'workdir/config points outside canonical shared lab root' "${script_path}" || \
     fail "check-shared-lab should emit a blocker when workdir or config escapes the canonical root"
+  grep -q '.canonical-override' "${script_path}" || \
+    fail "check-shared-lab should support owner-accepted canonical override files"
+  grep -q 'runtime_git_head' "${script_path}" || \
+    fail "check-shared-lab should verify the deployed runtime git head against the expected head"
+  grep -q 'systemctl cat' "${script_path}" || \
+    fail "check-shared-lab should inspect managed systemd config for WorkingDirectory and ExecStart"
+  grep -q 'TARS_DIR' "${script_path}" || \
+    fail "check-shared-lab should verify TARS_DIR from shared-test.env and process environment"
 }
 
 test_shared_lab_verification_docs_and_template_exist() {
   local doc_path="${ROOT_DIR}/docs/operations/shared-lab-verification.md"
   local template_path="${ROOT_DIR}/docs/operations/templates/verification-evidence.md"
   local records_dir="${ROOT_DIR}/docs/operations/records"
+  local evi18_spec_path="${ROOT_DIR}/docs/operations/specs/shared-lab-canonical-runtime-drift.md"
+  local evi18_record_path="${ROOT_DIR}/docs/operations/records/evi-18-runtime-canonical-verification.md"
 
   [[ -f "${doc_path}" ]] || fail "expected shared lab verification runbook doc"
   [[ -f "${template_path}" ]] || fail "expected verification evidence template doc"
   [[ -d "${records_dir}" ]] || fail "expected docs/operations/records directory to exist"
+  [[ -f "${evi18_spec_path}" ]] || fail "expected EVI-18 canonical runtime drift spec doc"
+  [[ -f "${evi18_record_path}" ]] || fail "expected EVI-18 runtime canonical verification record"
 
   grep -q 'PR review' "${doc_path}" || \
     fail "shared lab verification doc should explain when to run checks before PR review"
@@ -138,6 +150,10 @@ test_shared_lab_verification_docs_and_template_exist() {
     fail "verification evidence template should capture desktop screenshot evidence"
   grep -q '390px' "${template_path}" || \
     fail "verification evidence template should capture mobile screenshot evidence"
+  grep -q '.canonical-override' "${evi18_spec_path}" || \
+    fail "EVI-18 spec should define the owner-accepted canonical override contract"
+  grep -q 'systemd' "${evi18_record_path}" || \
+    fail "EVI-18 verification record should capture managed runtime config evidence"
 }
 
 test_shared_remote_service_restart_sets_canonical_workdir() {
@@ -145,6 +161,13 @@ test_shared_remote_service_restart_sets_canonical_workdir() {
 
   grep -q 'cd "${shared_dir}"' "${helper_path}" || \
     fail "shared_remote_service_restart should cd into the canonical shared dir before launching the binary"
+  grep -q 'systemctl daemon-reload' "${helper_path}" || \
+    fail "shared_remote_service_restart should manage the runtime through systemd"
+  grep -q 'ExecStart=' "${helper_path}" || \
+    fail "shared_remote_service_restart should write a managed ExecStart pointing at the canonical binary"
+  if grep -q 'nohup "${binary_path}"' "${helper_path}"; then
+    fail "shared_remote_service_restart should not launch the runtime with nohup"
+  fi
 }
 
 test_deploy_normalizes_local_placeholder_before_remote_fallback() {
@@ -152,6 +175,20 @@ test_deploy_normalizes_local_placeholder_before_remote_fallback() {
 
   grep -q 'shared_ops_token_normalize "${TARS_OPS_API_TOKEN:-}"' "${deploy_path}" || \
     fail "deploy script should normalize placeholder local token before deciding whether to fall back to remote canonical token"
+}
+
+test_deploy_defaults_shared_host_to_canonical_base_dir() {
+  local deploy_path="${ROOT_DIR}/scripts/deploy_team_shared.sh"
+  local env_template_path="${ROOT_DIR}/deploy/team-shared/shared-test.env.example"
+
+  grep -q 'REMOTE_BASE_DIR="/data/tars-setup-lab"' "${deploy_path}" || \
+    fail "deploy script should default shared-host deployments to the canonical /data/tars-setup-lab base dir"
+  grep -q 'runtime_git_head' "${deploy_path}" || \
+    fail "deploy script should stamp the deployed runtime git head for shared-lab verification"
+  grep -q 'TARS_DIR=REPLACE_WITH_REMOTE_BASE_DIR' "${env_template_path}" || \
+    fail "shared-test.env template should carry TARS_DIR for canonical runtime identity checks"
+  grep -q 'REPLACE_WITH_REMOTE_BASE_DIR' "${deploy_path}" || \
+    fail "deploy script should replace REPLACE_WITH_REMOTE_BASE_DIR in synced shared env files"
 }
 
 test_smoke_scripts_normalize_placeholder_before_remote_fallback() {
@@ -405,6 +442,26 @@ test_restart_helper_uses_single_ssh_with_env_and_pid_checks() {
     esac
 
     case "${SSH_CAPTURED_STDIN}" in
+      *'systemctl daemon-reload'* ) ;;
+      *) fail "expected restart helper to reload systemd before restarting the managed service" ;;
+    esac
+
+    case "${SSH_CAPTURED_STDIN}" in
+      *'systemctl enable --now "${service_name}"'* ) ;;
+      *) fail "expected restart helper to enable and start the managed shared-lab systemd service" ;;
+    esac
+
+    case "${SSH_CAPTURED_STDIN}" in
+      *'EnvironmentFile=${env_file}'* ) ;;
+      *) fail "expected restart helper to load shared-test.env through the managed service config" ;;
+    esac
+
+    case "${SSH_CAPTURED_STDIN}" in
+      *'ExecStart='*'${binary_path}'* ) ;;
+      *) fail "expected restart helper to persist the managed ExecStart path" ;;
+    esac
+
+    case "${SSH_CAPTURED_STDIN}" in
       *'printf '\''%s\n'\'' "${pid}" >"${pid_file}"'* ) ;;
       *) fail "expected restart helper to persist the new pid" ;;
     esac
@@ -427,6 +484,11 @@ test_restart_helper_uses_single_ssh_with_env_and_pid_checks() {
     case "${SSH_CAPTURED_STDIN}" in
       *'ps -p "${pid}" -o args='* ) ;;
       *) fail "expected restart helper to verify matched processes are actual tars binaries before stopping them" ;;
+    esac
+
+    case "${SSH_CAPTURED_STDIN}" in
+      *'nohup '* ) fail "restart helper should not use nohup once the managed service exists" ;;
+      * ) ;;
     esac
 
     case "${SSH_CAPTURED_STDIN}" in
@@ -554,6 +616,7 @@ test_check_shared_lab_script_enforces_canonical_runtime_and_endpoints
 test_shared_lab_verification_docs_and_template_exist
 test_shared_remote_service_restart_sets_canonical_workdir
 test_deploy_normalizes_local_placeholder_before_remote_fallback
+test_deploy_defaults_shared_host_to_canonical_base_dir
 test_smoke_scripts_normalize_placeholder_before_remote_fallback
 test_tool_plan_live_validate_requires_monitoring_first_tools
 test_tool_plan_smoke_validator_accepts_connector_artifacts_without_fixture_specific_names

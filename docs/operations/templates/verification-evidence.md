@@ -3,6 +3,7 @@
 - PR URL:
 - Runtime validated commit SHA:
 - Evidence commit SHA or docs-only evidence commit SHA:
+- Head commit SHA:
 - Final PR head commit SHA:
 - Shared lab host: `192.168.3.100`
 - Canonical runtime root: `/data/tars-setup-lab`

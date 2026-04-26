@@ -25,6 +25,7 @@ REMOTE_BINARY=""
 REMOTE_BINARY_BACKUP=""
 LOCAL_BINARY=""
 OPS_API_TOKEN=""
+LOCAL_GIT_HEAD=""
 
 log() {
   printf '[deploy_team_shared] %s\n' "$*"
@@ -63,15 +64,19 @@ detect_remote_home() {
 
 resolve_remote_paths() {
   if [[ -z "${REMOTE_BASE_DIR}" ]]; then
-    REMOTE_HOME="$(detect_remote_home)" || {
-      log "failed to detect remote home from ${REMOTE}; set TARS_REMOTE_BASE_DIR explicitly"
-      return 1
-    }
-    if [[ -z "${REMOTE_HOME}" ]]; then
-      log "remote home is empty for ${REMOTE}; set TARS_REMOTE_BASE_DIR explicitly"
-      return 1
+    if [[ "${REMOTE_HOST}" == "192.168.3.100" ]]; then
+      REMOTE_BASE_DIR="/data/tars-setup-lab"
+    else
+      REMOTE_HOME="$(detect_remote_home)" || {
+        log "failed to detect remote home from ${REMOTE}; set TARS_REMOTE_BASE_DIR explicitly"
+        return 1
+      }
+      if [[ -z "${REMOTE_HOME}" ]]; then
+        log "remote home is empty for ${REMOTE}; set TARS_REMOTE_BASE_DIR explicitly"
+        return 1
+      fi
+      REMOTE_BASE_DIR="${REMOTE_HOME}/tars-dev"
     fi
-    REMOTE_BASE_DIR="${REMOTE_HOME}/tars-dev"
   fi
 
   REMOTE_SHARED_DIR="${REMOTE_SHARED_DIR:-${REMOTE_BASE_DIR}/team-shared}"
@@ -153,9 +158,11 @@ configure_arch_paths() {
   REMOTE_BINARY="${TARS_REMOTE_BINARY:-${REMOTE_BASE_DIR}/bin/tars-linux-${TARGET_ARCH}-dev}"
   REMOTE_BINARY_BACKUP="${TARS_REMOTE_BINARY_BACKUP:-${REMOTE_BINARY}.prev}"
   LOCAL_BINARY="${ROOT_DIR}/bin/tars-linux-${TARGET_ARCH}"
+  LOCAL_GIT_HEAD="$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || printf 'unknown')"
   ensure_non_root_paths
   log "using remote base dir ${REMOTE_BASE_DIR}"
   log "using target arch ${TARGET_ARCH}"
+  log "using git head ${LOCAL_GIT_HEAD}"
 }
 
 build_binary() {
@@ -204,21 +211,23 @@ sync_shared_files() {
   else
     log "shared ops token not explicitly overridden; merging template shared-test.env with remote canonical values"
   fi
-  python3 - <<'PY' "${tmp_sync_dir}" "${remote_env_snapshot}" "${REMOTE_HOST}" "${REMOTE_SHARED_DIR}" "${REMOTE_WEB_DIST}" "${REMOTE_DATA_DIR}" "${REMOTE_EXECUTION_OUTPUT_DIR}" "${REMOTE_BINARY}" "${sync_ops_token}"
+  python3 - <<'PY' "${tmp_sync_dir}" "${remote_env_snapshot}" "${REMOTE_HOST}" "${REMOTE_BASE_DIR}" "${REMOTE_SHARED_DIR}" "${REMOTE_WEB_DIST}" "${REMOTE_DATA_DIR}" "${REMOTE_EXECUTION_OUTPUT_DIR}" "${REMOTE_BINARY}" "${sync_ops_token}"
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
 remote_env_snapshot = Path(sys.argv[2])
 remote_host = sys.argv[3]
-remote_shared_dir = sys.argv[4]
-remote_web_dist = sys.argv[5]
-remote_data_dir = sys.argv[6]
-remote_execution_output_dir = sys.argv[7]
-remote_binary = sys.argv[8]
-sync_ops_token = sys.argv[9]
+remote_base_dir = sys.argv[4]
+remote_shared_dir = sys.argv[5]
+remote_web_dist = sys.argv[6]
+remote_data_dir = sys.argv[7]
+remote_execution_output_dir = sys.argv[8]
+remote_binary = sys.argv[9]
+sync_ops_token = sys.argv[10]
 
 replacements = [
+    ("REPLACE_WITH_REMOTE_BASE_DIR", remote_base_dir),
     ("192.168.3.106", remote_host),
     ("192.168.3.100", remote_host),
     ("REPLACE_WITH_REMOTE_SHARED_DIR", remote_shared_dir),
@@ -310,7 +319,7 @@ PY
 sync_binary() {
   log "syncing binary"
   scp "${LOCAL_BINARY}" "${REMOTE}:${REMOTE_BINARY}.new"
-  ssh "${REMOTE}" "if [ -f '${REMOTE_BINARY}' ]; then cp '${REMOTE_BINARY}' '${REMOTE_BINARY_BACKUP}'; fi && mv '${REMOTE_BINARY}.new' '${REMOTE_BINARY}' && chmod +x '${REMOTE_BINARY}'"
+  ssh "${REMOTE}" "if [ -f '${REMOTE_BINARY}' ]; then cp '${REMOTE_BINARY}' '${REMOTE_BINARY_BACKUP}'; fi && mv '${REMOTE_BINARY}.new' '${REMOTE_BINARY}' && chmod +x '${REMOTE_BINARY}' && printf '%s\n' '${LOCAL_GIT_HEAD}' > '${REMOTE_SHARED_DIR}/runtime_git_head'"
 }
 
 sync_web_dist() {
