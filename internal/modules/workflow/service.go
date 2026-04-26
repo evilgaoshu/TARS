@@ -1645,7 +1645,10 @@ func (s *Service) selectExecutionRuntime(_ string) executionRuntimeSelection {
 			FallbackTarget:  "ssh",
 		},
 	}
-	entry, ok := connectors.SelectHealthyRuntimeManifest(s.connectors, "execution", "", map[string]struct{}{"jumpserver_api": {}})
+	entry, ok := connectors.SelectHealthyRuntimeManifest(s.connectors, "execution", "", map[string]struct{}{
+		"jumpserver_api": {},
+		"ssh_native":     {},
+	})
 	if !ok {
 		return selection
 	}
