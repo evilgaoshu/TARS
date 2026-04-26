@@ -4,6 +4,8 @@
 - Capture window: `2026-04-27 00:08 +08` (`2026-04-26 16:08 UTC`)
 - Shared environment: `192.168.3.100`
 - Target host: `192.168.3.9`
+- PR: `https://github.com/evilgaoshu/TARS/pull/14`
+- PR head commit at initial PR creation: `43fb6db7b7c31837fdb07eef8e71da1162bfcbf8`
 - Deployed runtime commit: `61eab80f3e2628bd6cc3f27ef51462a67e0c85c7`
 - Runtime head file: `/data/tars-setup-lab/team-shared/runtime_git_head`
 - Runtime log: `/data/tars-setup-lab/team-shared/tars-dev.log`
@@ -61,6 +63,7 @@ TARS_REMOTE_USER=root make smoke-remote
 | `make check-mvp` | PASS | Includes `go test ./...`, core coverage, Go build, OpenAPI validation, web lint/test/build. |
 | Targeted regression tests | PASS | `go test ./internal/modules/workflow -run TestSelectExecutionRuntimeFallsBackToHealthySSHNativeConnector -count=1`; `go test ./internal/repo/postgres -run TestSelectExecutionRuntimeFallsBackToHealthySSHNativeConnector -count=1`. |
 | `TARS_REMOTE_USER=root make smoke-remote` | PASS | healthz/readyz/discovery/hygiene/performance spot-check passed on `192.168.3.100`; failed/blocked/pending outbox totals were `0`. |
+| GitHub PR checks | PASS | PR #14 checks passed: L0 Pre-check, L1 MVP Checks, L2 Security Regression, Secret Scan, Static Demo Build. |
 | Full `deploy_team_shared.sh` validation | PARTIAL | Deploy/restart/readiness passed, but `live-validate` failed in the model-planner smoke scenario: `scenario=logs expected tools ['metrics.query_range', 'logs.query', 'observability.query'], got ['logs.query']`. This is recorded as residual shared-live validation risk, separate from the EVI-19 execution/verifier closure. |
 
 ## JumpServer Probe
