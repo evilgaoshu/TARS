@@ -101,6 +101,13 @@
 - Telegram 对话路径已验证：缺少 host 时给出引导且不创建 session；指定 host 时会创建 `telegram_chat` session。
 - 指定 host 的会话现已稳定到达 `execution_draft_ready` 和 `approval_accepted`；SSH / JumpServer execution 与 verifier 已被 owner 明确要求在 PR #8 closeout 中先跳过。
 
+当前 EVI-19 补充证据说明：
+
+- `192.168.3.100` 已部署 runtime commit `61eab80f3e2628bd6cc3f27ef51462a67e0c85c7`。
+- `jumpserver-main` 的 API health probe 已通过，但实际 command job submission 仍返回 `403 permission_denied`（`命令执行已禁用`），因此本轮 full-go 使用受控 `ssh-main` fallback。
+- `ssh-main` against `192.168.3.9` 已完成 `alert -> diagnosis -> require_approval -> approval_accepted -> execution_completed -> verify_success -> resolved`。
+- EVI-19 resolved sample：session `811a30f4-8e3e-4ccc-8989-8af485a25c38`，execution `0f46f347-29c5-49b4-b01d-23d41ebb1253`，verification `success`，output spool `/data/tars-setup-lab/execution-output/0f46f347-29c5-49b4-b01d-23d41ebb1253-20260426T160848Z.log`。
+
 ### 暂不建议 Go
 
 出现以下任一情况，先不要继续扩大试点：

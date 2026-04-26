@@ -75,9 +75,9 @@
 
 ### Remaining full-go blockers
 
-- Full execution still routes into degraded `jumpserver-main`.
-- Verifier evidence is still absent.
-- Final `resolved` evidence for the execution runtime path is still absent.
+- `jumpserver-main` API health is now configured, but command job submission is still denied by JumpServer with `403 permission_denied` / `命令执行已禁用`.
+- EVI-19 captured a controlled `ssh-main` fallback full-go sample on `192.168.3.100 -> 192.168.3.9`: session `811a30f4-8e3e-4ccc-8989-8af485a25c38`, execution `0f46f347-29c5-49b4-b01d-23d41ebb1253`, verifier `success`, final state `resolved`.
+- Remaining primary-path blocker: JumpServer command execution must be enabled before claiming JumpServer primary full-go success.
 
 ### PR #8 closeout disposition
 
@@ -89,12 +89,9 @@
 
 ## Recommended Next Capture
 
-1. Keep PR #8 evidence tied to the owner-approved scope exception.
-2. For a future full-go sample, re-enable a working execution runtime and collect:
-   - successful execution
-   - verifier success
-   - final `resolved`
-3. Record the resulting spool/output evidence in a follow-up record.
+1. Keep PR #8 evidence tied to the owner-approved EVI-13 scope exception.
+2. Treat EVI-19 as the first full-go fallback closure: `ssh-main` produced successful execution, verifier success, and final `resolved`.
+3. For JumpServer primary-path go/no-go, enable JumpServer command execution for the supplied AK/SK and target asset, then rerun the same approval/execution/verifier capture without fallback.
 
 ## Decision Table
 
