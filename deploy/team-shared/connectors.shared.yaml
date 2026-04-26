@@ -78,10 +78,10 @@ connectors:
           formats: ["yaml", "json"]
       config:
         values:
-          host: REPLACE_WITH_TARGET_HOST
+          host: 192.168.3.9
           port: "22"
-          username: REPLACE_WITH_USERNAME
-          credential_id: REPLACE_WITH_SSH_CREDENTIAL_ID
+          username: root
+          credential_id: evi19-ssh-root-3-9
         secret_refs: {}
       compatibility:
         tars_major_versions: ["1"]
@@ -301,7 +301,7 @@ connectors:
           formats: ["yaml", "json", "tar.gz"]
       config:
         values:
-          base_url: https://jumpserver.example.com
+          base_url: http://192.168.3.100
         secret_refs:
           access_key: connector/jumpserver-main/access_key
           secret_key: connector/jumpserver-main/secret_key
