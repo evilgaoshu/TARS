@@ -51,12 +51,12 @@
 
 ### 共享测试机
 
-推荐使用显式 SSH 用户，并让部署脚本按远端用户的 `$HOME/tars-dev` 推导目录。也可以显式覆盖：
+推荐使用显式 SSH 用户。`192.168.3.100` 会默认使用 canonical 目录 `/data/tars-setup-lab`；其它主机仍可显式覆盖：
 
 ```sh
 export TARS_REMOTE_HOST=192.168.3.100
-export TARS_REMOTE_USER=<ssh-user>
-export TARS_REMOTE_BASE_DIR=/home/<ssh-user>/tars-dev
+export TARS_REMOTE_USER=root
+export TARS_REMOTE_BASE_DIR=/data/tars-setup-lab
 # 可选：显式覆盖共享 token；不设置时脚本会尝试从远端 shared-test.env 自动解析
 # export TARS_OPS_API_TOKEN=<local-secret>
 ```
@@ -79,13 +79,15 @@ export TARS_REMOTE_BASE_DIR=/home/<ssh-user>/tars-dev
 - `REPLACE_WITH_REMOTE_SHARED_DIR/marketplace/index.yaml`
 - `REPLACE_WITH_REMOTE_SHARED_DIR/marketplace/disk-space-incident.package.yaml`
 
-然后：
+如果需要只重启 runtime，使用受管 helper 生成/更新 `tars-shared-lab.service`：
 
 ```sh
-set -a
-source REPLACE_WITH_REMOTE_SHARED_DIR/shared-test.env
-set +a
-REPLACE_WITH_REMOTE_BINARY
+source ../../scripts/lib/shared_remote_service.sh
+shared_remote_service_restart \
+  "root@192.168.3.100" \
+  "/data/tars-setup-lab/team-shared" \
+  "/data/tars-setup-lab/bin/tars-linux-amd64-dev" \
+  "/data/tars-setup-lab/team-shared/tars-dev.log"
 ```
 
 不要直接执行裸命令：
@@ -99,7 +101,7 @@ nohup ./bin/tars-linux-amd64-dev &
 - Web 首页返回 `503 web_ui_unavailable`
 - 服务虽然存活，但前端入口、`/setup`、`/login` 全部打不开
 
-共享测试环境里，“先 source env，再启动二进制”是硬要求，不是建议项。
+共享测试环境里，`systemd` 受管服务、canonical path、`shared-test.env`、`TARS_DIR` 和 `runtime_git_head` 一致是硬要求，不是建议项。
 
 当前建议把共享机 `Ops API token` 视为一份统一的 break-glass 凭据：
 

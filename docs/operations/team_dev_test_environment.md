@@ -227,12 +227,12 @@ scp -r ./web/dist/* "$TARS_REMOTE_USER@$TARS_REMOTE_HOST:$TARS_REMOTE_BASE_DIR/w
 ### 6.3 启动
 
 ```sh
-ssh "$TARS_REMOTE_USER@$TARS_REMOTE_HOST" "
-  set -a
-  source '$TARS_REMOTE_BASE_DIR/team-shared/shared-test.env'
-  set +a
-  nohup '$TARS_REMOTE_BASE_DIR/bin/tars-linux-amd64-dev' >'$TARS_REMOTE_BASE_DIR/team-shared/tars-dev.log' 2>&1 &
-"
+source scripts/lib/shared_remote_service.sh
+shared_remote_service_restart \
+  "$TARS_REMOTE_USER@$TARS_REMOTE_HOST" \
+  "$TARS_REMOTE_BASE_DIR/team-shared" \
+  "$TARS_REMOTE_BASE_DIR/bin/tars-linux-amd64-dev" \
+  "$TARS_REMOTE_BASE_DIR/team-shared/tars-dev.log"
 ```
 
 不要简化成：
@@ -271,6 +271,7 @@ make deploy
 - `make deploy`：默认串起 `deploy -> smoke-remote -> live-validate`，适合作为共享环境完整闭环入口。
 - 部署脚本会自动探测远端 CPU 架构；如需手动覆盖，可传 `TARS_TARGET_ARCH=amd64|arm64`。
 - 部署脚本现在会在远端保留上一版二进制副本 `$TARS_REMOTE_BASE_DIR/bin/tars-linux-<amd64|arm64>-dev.prev`，供失败时快速恢复。
+- `192.168.3.100` 的部署脚本默认使用 `/data/tars-setup-lab`，并写入 `$TARS_REMOTE_BASE_DIR/team-shared/runtime_git_head` 供 `scripts/check-shared-lab.sh` 与 PR/head commit 对齐。
 
 ## 7. 部署后检查
 

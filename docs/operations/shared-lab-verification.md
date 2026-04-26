@@ -55,8 +55,11 @@ Optional overrides:
 ```sh
 export TARS_SHARED_LAB_BASE_URL="http://127.0.0.1:8081"
 export TARS_SHARED_LAB_CANONICAL_BASE_DIR="/data/tars-setup-lab"
+export TARS_SHARED_LAB_SERVICE_NAME="tars-shared-lab.service"
 export TARS_OPS_API_TOKEN="<temporary override only when the env file is wrong>"
 ```
+
+Owner-accepted exceptions are read from `/data/tars-setup-lab/.canonical-override`. This file is only valid when it contains `accepted_path`, `owner_id`, `date`, `reason`, and `expires_at` fields. A valid exception turns matching non-canonical path checks into WARN; missing, malformed, or expired exception data fails the verification.
 
 ## PASS Criteria
 
@@ -65,11 +68,13 @@ The script only returns `overall: PASS` when all of the following are true:
 1. Port `8081` has a LISTEN pid.
 2. The pid resolves to a binary under `/data/tars-setup-lab`.
 3. The process workdir is `/data/tars-setup-lab` or a child path.
-4. The process `TARS_*` path variables point to `/data/tars-setup-lab`, not `/root/tars-dev` or another tree.
-5. `shared-test.env` resolves under `/data/tars-setup-lab`.
-6. `POST /api/v1/auth/login` succeeds with the shared `local_token`.
-7. `GET /api/v1/setup/status` succeeds.
-8. The specified session URL is reachable.
+4. The process `TARS_DIR`, `TARS_HOME`, and `TARS_*` path variables point to `/data/tars-setup-lab`, not `/root/tars-dev` or another tree.
+5. `shared-test.env` resolves under `/data/tars-setup-lab` and contains `TARS_DIR=/data/tars-setup-lab`.
+6. The deployed `runtime_git_head` matches `TARS_SHARED_LAB_EXPECTED_GIT_HEAD`.
+7. The managed `tars-shared-lab.service` systemd unit has canonical `WorkingDirectory`, `ExecStart`, and `EnvironmentFile` or `Environment` values.
+8. `POST /api/v1/auth/login` succeeds with the shared `local_token`.
+9. `GET /api/v1/setup/status` succeeds.
+10. The specified session URL is reachable.
 
 ## FAIL Criteria
 
@@ -79,9 +84,12 @@ Common blockers:
 
 1. `workdir/config points outside canonical shared lab root`: the live process is probably running from `/root/tars-dev` or another stale tree.
 2. `shared env file outside canonical shared lab root`: the process may have been started with the wrong env file.
-3. `local_token login failed`: the break-glass auth path is not healthy, or the env file token is stale.
-4. `setup/status failed`: the authenticated runtime checks path is not healthy.
-5. `missing session URL input`: no session-specific evidence can be tied to the branch yet.
+3. `runtime git head mismatch`: the code deployed on `192.168.3.100` is not the PR/head commit being reviewed.
+4. `systemd unit ... not found`: the runtime is not managed through the canonical service path.
+5. `invalid .canonical-override`: an owner exception exists but is missing required fields or has expired.
+6. `local_token login failed`: the break-glass auth path is not healthy, or the env file token is stale.
+7. `setup/status failed`: the authenticated runtime checks path is not healthy.
+8. `missing session URL input`: no session-specific evidence can be tied to the branch yet.
 
 ## What To Do On Failure
 
@@ -89,7 +97,9 @@ Common blockers:
 2. Paste the script output into the PR or issue comment verbatim.
 3. State whether the blocker is runtime identity, auth, setup status, or session reachability.
 4. If the process is on `/root/tars-dev` or another non-canonical tree, restart or redeploy the canonical `/data/tars-setup-lab` instance before taking screenshots.
-5. Re-run the script and replace the failed evidence with the passing output before asking for review again.
+5. Use `bash scripts/deploy_team_shared.sh` or `source scripts/lib/shared_remote_service.sh && shared_remote_service_restart ...` to recreate the managed `tars-shared-lab.service`. Do not manually start the TARS binary with `nohup`, a bare `./tars-linux-*` command, or a background ampersand.
+6. Check for common drift causes before re-running: an old shell command still running from `/root/tars-dev`, a stale `shared-test.env`, a missing `runtime_git_head`, an expired `.canonical-override`, or a service unit whose `WorkingDirectory` still points outside `/data/tars-setup-lab`.
+7. Re-run the script and replace the failed evidence with the passing output before asking for review again.
 
 ## Evidence Capture Flow
 

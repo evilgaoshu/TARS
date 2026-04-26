@@ -100,29 +100,27 @@ export TARS_DEPLOY_SKIP_VALIDATE=1
 bash scripts/deploy_team_shared.sh
 ```
 
-如果只想手工启动远端二进制：
+如果只想重启远端 runtime，使用仓库里的受管 helper：
 
 ```sh
-ssh root@192.168.3.100 "
-  cd /data/tars-setup-lab &&
-  set -a &&
-  . /data/tars-setup-lab/team-shared/shared-test.env &&
-  set +a &&
-  nohup /data/tars-setup-lab/bin/tars-linux-amd64-dev \
-    > /data/tars-setup-lab/team-shared/tars-dev.log 2>&1 < /dev/null &
-"
+source scripts/lib/shared_remote_service.sh
+shared_remote_service_restart \
+  "root@192.168.3.100" \
+  "/data/tars-setup-lab/team-shared" \
+  "/data/tars-setup-lab/bin/tars-linux-amd64-dev" \
+  "/data/tars-setup-lab/team-shared/tars-dev.log"
 ```
 
 重要约束：
 
 - 不要手工执行裸命令 `nohup ./bin/tars-linux-amd64-dev`。
-- 必须先 `source /data/tars-setup-lab/team-shared/shared-test.env`，再启动二进制。
+- 不要手工后台启动二进制；runtime 必须由 `tars-shared-lab.service` 通过 `EnvironmentFile=/data/tars-setup-lab/team-shared/shared-test.env` 启动。
 - 如果跳过 `shared-test.env`，进程会退回默认 `./web/dist`、默认配置路径和默认 secret/runtime config 行为，常见表象是：
   - `GET /` 返回 `503`
   - `{"error":{"code":"web_ui_unavailable","message":"web ui index is not available"}}`
   - `/setup`、`/login`、前端静态资源全部不可用
 
-推荐把“能启动”与“启动正确”区分开来。共享 lab 上只有“带 env 启动”才算正确。
+推荐把“能启动”与“启动正确”区分开来。共享 lab 上只有 `systemd` 受管、canonical path、`shared-test.env` 和 `runtime_git_head` 一致才算正确。
 
 ## 4. 常用检查命令
 
@@ -138,6 +136,8 @@ ssh root@192.168.3.100 'curl -fsS http://127.0.0.1:8081/api/v1/bootstrap/status'
 ```sh
 ssh root@192.168.3.100 'pgrep -af tars-linux-amd64-dev'
 ssh root@192.168.3.100 'tail -n 100 /data/tars-setup-lab/team-shared/tars-dev.log'
+ssh root@192.168.3.100 'systemctl cat tars-shared-lab.service'
+ssh root@192.168.3.100 'systemctl status tars-shared-lab.service --no-pager'
 ```
 
 确认进程真的吃到了共享环境变量：
@@ -156,6 +156,13 @@ ssh root@192.168.3.100 '
 - `TARS_POSTGRES_DSN=...`
 
 如果这里看不到变量，说明服务是“裸起”的，应该立刻按第 3 节重启。
+
+漂移恢复顺序：
+
+1. 运行 `bash scripts/check-shared-lab.sh`，确认 binary、cwd、`TARS_DIR`、`shared-test.env`、`runtime_git_head` 和 `systemd` unit 哪一项漂移。
+2. 若 listener 来自 `/root/tars-dev` 或其它旧目录，使用 `shared_remote_service_restart` 重新生成并重启 `tars-shared-lab.service`。
+3. 若确实需要临时接受非 canonical 路径，先由 owner 在 issue 中书面确认，再写 `/data/tars-setup-lab/.canonical-override`；缺少 `accepted_path`、`owner_id`、`date`、`reason`、`expires_at` 任一字段都会被检查脚本判为失败。
+4. 重新运行 `TARS_SHARED_LAB_EXPECTED_GIT_HEAD="$(git rev-parse HEAD)" bash scripts/check-shared-lab.sh`，通过后再进入 PR/QA 验收。
 
 查看当前配置文件：
 
