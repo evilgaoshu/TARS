@@ -527,6 +527,7 @@ func (s *Service) CheckConnectorHealth(ctx context.Context, connectorID string) 
 		if checker, ok := runtime.(ConnectorHealthChecker); ok {
 			manifest.Config.Values = secrets.ResolveValues(s.secrets, manifest.Config.Values, manifest.Config.SecretRefs)
 			status, summary, err = checker.CheckHealth(ctx, manifest)
+			status, summary = normalizeExecutionConnectorHealth(manifest, status, summary)
 			if err != nil {
 				summary = firstNonEmpty(strings.TrimSpace(summary), err.Error())
 			}
@@ -548,6 +549,7 @@ func (s *Service) CheckConnectorHealth(ctx context.Context, connectorID string) 
 		if checker, ok := runtime.(ConnectorHealthChecker); ok {
 			manifest.Config.Values = secrets.ResolveValues(s.secrets, manifest.Config.Values, manifest.Config.SecretRefs)
 			status, summary, err = checker.CheckHealth(ctx, manifest)
+			status, summary = normalizeExecutionConnectorHealth(manifest, status, summary)
 			if err != nil {
 				summary = firstNonEmpty(strings.TrimSpace(summary), err.Error())
 			}
@@ -592,6 +594,22 @@ func (s *Service) CheckConnectorHealth(ctx context.Context, connectorID string) 
 	}
 	state.Compatibility = compatibility
 	return state, nil
+}
+
+func normalizeExecutionConnectorHealth(manifest connectors.Manifest, status string, summary string) (string, string) {
+	if !strings.EqualFold(strings.TrimSpace(manifest.Spec.Type), "execution") {
+		return status, summary
+	}
+	if !strings.EqualFold(strings.TrimSpace(manifest.Spec.Protocol), "jumpserver_api") {
+		return status, summary
+	}
+	if !strings.EqualFold(strings.TrimSpace(status), "healthy") {
+		return status, summary
+	}
+	if !strings.Contains(strings.ToLower(summary), "api probe succeeded") {
+		return status, summary
+	}
+	return "degraded", appendCompatibilitySummary("jumpserver API probe succeeded; execution not yet verified", strings.TrimSpace(summary))
 }
 
 func (s *Service) CheckManifestHealth(ctx context.Context, manifest connectors.Manifest) (connectors.LifecycleState, error) {

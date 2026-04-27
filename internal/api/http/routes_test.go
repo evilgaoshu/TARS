@@ -4270,10 +4270,10 @@ func TestConnectorExecutionAndHealthRuntime(t *testing.T) {
 	}
 	var health dto.ConnectorLifecycle
 	decodeRecorderJSON(t, healthResp, &health)
-	if health.Health.Status != "healthy" || len(health.HealthHistory) == 0 {
+	if health.Health.Status != "degraded" || len(health.HealthHistory) == 0 {
 		t.Fatalf("unexpected connector health payload: %+v", health)
 	}
-	if !strings.Contains(health.Health.Summary, "jumpserver API probe succeeded") {
+	if !strings.Contains(health.Health.Summary, "jumpserver API probe succeeded") || !strings.Contains(health.Health.Summary, "execution not yet verified") {
 		t.Fatalf("expected runtime health summary, got %+v", health.Health)
 	}
 	if health.Compatibility.CheckedAt.IsZero() {

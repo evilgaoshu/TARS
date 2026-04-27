@@ -136,6 +136,41 @@ func TestCheckConnectorHealthExecutionRuntimeError(t *testing.T) {
 	}
 }
 
+func TestCheckConnectorHealthExecutionRuntimeJumpServerAPIProbeIsDegraded(t *testing.T) {
+	t.Parallel()
+
+	manager := mustTestConnectorManager(t, newConnectorManifest(
+		"jumpserver-main",
+		"JumpServer Main",
+		"jumpserver",
+		"execution",
+		"jumpserver_api",
+		[]string{"1"},
+	))
+
+	svc := NewService(Options{
+		Connectors: manager,
+		ExecutionRuntimes: map[string]ExecutionRuntime{
+			"jumpserver_api": testConnectorRuntime{
+				healthFn: func(context.Context, connectors.Manifest) (string, string, error) {
+					return "healthy", "jumpserver API probe succeeded", nil
+				},
+			},
+		},
+	})
+
+	state, err := svc.CheckConnectorHealth(context.Background(), "jumpserver-main")
+	if err != nil {
+		t.Fatalf("check connector health: %v", err)
+	}
+	if state.Health.Status != "degraded" {
+		t.Fatalf("expected jumpserver API-only health to stay degraded, got %+v", state.Health)
+	}
+	if !strings.Contains(state.Health.Summary, "jumpserver API probe succeeded") || !strings.Contains(state.Health.Summary, "execution not yet verified") {
+		t.Fatalf("expected jumpserver degraded summary to explain api-only health, got %+v", state.Health)
+	}
+}
+
 func TestCheckConnectorHealthQueryRuntimeError(t *testing.T) {
 	t.Parallel()
 
