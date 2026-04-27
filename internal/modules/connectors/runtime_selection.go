@@ -158,12 +158,29 @@ func selectRuntimeManifest(manager *Manager, expectedType string, requestedProto
 		if err := ValidateRuntimeManifest(entry, expectedType, requestedProtocol, supportedProtocols); err != nil {
 			continue
 		}
-		if requireHealthy && !strings.EqualFold(strings.TrimSpace(snapshot.Lifecycle[strings.TrimSpace(entry.Metadata.ID)].Health.Status), "healthy") {
+		if requireHealthy && !runtimeEntryIsHealthy(entry, snapshot.Lifecycle[strings.TrimSpace(entry.Metadata.ID)].Health) {
 			continue
 		}
 		return entry, true
 	}
 	return Manifest{}, false
+}
+
+func runtimeEntryIsHealthy(entry Manifest, health HealthStatus) bool {
+	if !strings.EqualFold(strings.TrimSpace(health.Status), "healthy") {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(entry.Spec.Type), "execution") {
+		return true
+	}
+	if !strings.EqualFold(strings.TrimSpace(entry.Spec.Protocol), "jumpserver_api") {
+		return true
+	}
+	summary := strings.ToLower(strings.TrimSpace(health.Summary))
+	if strings.Contains(summary, "api probe succeeded") && !strings.Contains(summary, "execution runtime completed successfully") {
+		return false
+	}
+	return true
 }
 
 func resolveRuntimeManifestAlias(manager *Manager, connectorID string, expectedType string, requestedProtocol string, supportedProtocols map[string]struct{}) (Manifest, bool) {
