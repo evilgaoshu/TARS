@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TARS Web Console Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --panel: #fffdf7;
+      --panel-strong: #eef3f4;
+      --border: #d8dedc;
+      --text: #172026;
+      --muted: #66737a;
+      --primary: #0f9f9a;
+      --primary-ink: #063f3d;
+      --evidence: #2563eb;
+      --warning: #b7791f;
+      --critical: #c2413d;
+      --healthy: #2f855a;
+      --slate: #64748b;
+      --shadow: 0 10px 24px rgba(23, 32, 38, .06);
+    }
+    html.dark {
+      --bg: #111827;
+      --panel: #17202d;
+      --panel-strong: #1f2a38;
+      --border: #334155;
+      --text: #e5edf0;
+      --muted: #9aa7b2;
+      --primary: #32c7bd;
+      --primary-ink: #082f2d;
+      --evidence: #68a4ff;
+      --warning: #f2b84b;
+      --critical: #ff7d75;
+      --healthy: #63c886;
+      --slate: #94a3b8;
+      --shadow: 0 16px 32px rgba(0, 0, 0, .22);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "IBM Plex Sans", sans-serif;
+      letter-spacing: 0;
+    }
+    a { color: inherit; text-decoration: none; }
+    code, pre, .mono { font-family: "IBM Plex Mono", monospace; }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+    .sidebar { border-right: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 90%, var(--bg)); padding: 16px; position: sticky; top: 0; height: 100vh; overflow: auto; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 8px 8px 18px; }
+    .brand-mark { width: 34px; height: 34px; border-radius: 8px; background: var(--primary); color: var(--primary-ink); display: grid; place-items: center; font-weight: 700; }
+    .nav-group { margin: 14px 0; }
+    .nav-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 12px 8px 6px; }
+    .nav-link { display: flex; align-items: center; gap: 9px; padding: 8px; border-radius: 6px; color: var(--muted); font-size: 14px; }
+    .nav-link.active, .nav-link:hover { background: var(--panel-strong); color: var(--text); }
+    .main { min-width: 0; }
+    .topbar { height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 24px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 82%, var(--panel)); position: sticky; top: 0; z-index: 10; }
+    .search { flex: 1; max-width: 640px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--panel); border-radius: 6px; padding: 9px 12px; color: var(--muted); }
+    .content { padding: 24px; max-width: 1480px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; margin-bottom: 18px; }
+    .breadcrumb { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    h1 { font-size: 30px; line-height: 1.1; margin: 0; font-weight: 700; letter-spacing: 0; }
+    h2 { font-size: 18px; margin: 0 0 12px; font-weight: 650; }
+    h3 { font-size: 14px; margin: 0 0 8px; font-weight: 650; }
+    p { margin: 0; color: var(--muted); }
+    .hero p { margin-top: 8px; max-width: 760px; }
+    .btn { border: 1px solid var(--border); border-radius: 6px; padding: 9px 12px; background: var(--panel); color: var(--text); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+    .btn.danger { border-color: color-mix(in srgb, var(--critical) 45%, var(--border)); color: var(--critical); }
+    .btn.ghost { background: transparent; }
+    .toolbar, .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-9 { grid-column: span 9; }
+    .span-12 { grid-column: span 12; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); padding: 16px; }
+    .card.compact { padding: 12px; }
+    .surface { background: var(--panel-strong); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .kpi { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .kpi strong { font-size: 25px; line-height: 1; }
+    .chip, .badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 4px; padding: 3px 7px; font-size: 12px; font-weight: 650; border: 1px solid currentColor; white-space: nowrap; }
+    .chip.teal { color: var(--primary); }
+    .chip.amber, .badge.warning { color: var(--warning); }
+    .chip.green, .badge.info { color: var(--healthy); }
+    .chip.red, .badge.critical { color: var(--critical); }
+    .chip.slate { color: var(--slate); }
+    .badge.evidence { color: var(--evidence); }
+    .queue-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; border-left: 3px solid var(--warning); }
+    .queue-card.critical { border-left-color: var(--critical); }
+    .queue-card.teal { border-left-color: var(--primary); }
+    .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+    .evidence-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--border); }
+    .timeline { display: grid; gap: 10px; }
+    .timeline-item { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 10px; }
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .field { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 6px; padding: 9px 10px; min-height: 38px; }
+    .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table th, .table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; vertical-align: top; }
+    .table th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    details { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: color-mix(in srgb, var(--panel) 70%, var(--panel-strong)); }
+    details summary { cursor: pointer; font-weight: 650; }
+    pre { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+    .drawer { border-left: 1px solid var(--border); padding-left: 16px; }
+    .state-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .state { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; background: var(--panel); }
+    .dialog { border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--panel-strong); }
+    .note { width: 100%; min-height: 84px; resize: vertical; }
+    .mobile-only { display: none; }
+    .sticky-actions { display: none; }
+    .search-overlay { display: none; position: fixed; inset: 76px 24px auto 304px; z-index: 20; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); padding: 16px; max-width: 720px; }
+    .search-overlay.open { display: block; }
+    .route-label { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    @media (max-width: 640px) {
+      body { overflow-x: hidden; }
+      .app-shell { display: block; }
+      .sidebar { position: sticky; top: 0; height: auto; max-height: 132px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--border); z-index: 30; }
+      .brand { padding-bottom: 8px; }
+      .nav-title { display: none; }
+      .nav-group { display: inline-flex; margin: 0 6px 0 0; vertical-align: top; }
+      .nav-link { white-space: nowrap; display: inline-flex; }
+      .topbar { top: 132px; height: auto; padding: 10px 12px; flex-wrap: wrap; }
+      .search { min-width: 100%; order: 2; }
+      .content { padding: 14px 12px 82px; }
+      .hero { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+      .grid-12 { display: block; }
+      .grid-12 > * { margin-bottom: 12px; }
+      .state-grid { grid-template-columns: 1fr; }
+      .queue-card, .evidence-row, .timeline-item { grid-template-columns: 1fr; }
+      .drawer { border-left: 0; padding-left: 0; }
+      .desktop-only { display: none !important; }
+      .mobile-only { display: inline-flex; }
+      .sticky-actions { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 10px 12px; gap: 8px; background: var(--panel); border-top: 1px solid var(--border); }
+      .sticky-actions .btn { flex: 1; justify-content: center; }
+      .search-overlay { inset: 176px 12px auto 12px; }
+      .table { display: block; overflow-x: auto; }
+      /* 390px mobile target: keep long command, JSON, and trace text wrapped. */
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TARS Console</strong>
+          <div class="route-label">On-call Evidence Desk</div>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <button class="btn ghost mobile-only" id="menu-button"><i data-lucide="menu"></i> Menu</button>
+        <button class="search" id="search-button"><i data-lucide="search"></i><span>Global Search: session, execution, connector, audit trace</span></button>
+        <button class="btn" id="theme-toggle"><i data-lucide="moon"></i> Theme</button>
+        <span class="chip teal">prod-us-east</span>
+        <span class="chip amber">on-call: sre-primary</span>
+      </header>
+      <div class="search-overlay" id="search-overlay">
+        <h2>Global Search</h2>
+        <div class="filter-bar"><input class="field" value="checkout latency postgres" aria-label="Search prototype"></div>
+        <div class="grid-12">
+          <a class="card compact span-6" href="#/sessions/:id"><strong>Session SES-1048</strong><p>Checkout latency likely tied to postgres lock waits.</p></a>
+          <a class="card compact span-6" href="#/executions/:id"><strong>Execution EXE-7781</strong><p>Restart checkout-worker requires approval.</p></a>
+          <a class="card compact span-6" href="#/connectors/:id"><strong>Connector victoria-metrics-prod</strong><p>Probe healthy, p95 latency 184ms.</p></a>
+          <a class="card compact span-6" href="#/audit"><strong>Audit trace TRC-9af2</strong><p>Approval requested by tars-agent.</p></a>
+        </div>
+      </div>
+      <section class="content">
+
+        <article class="page" id="route-login" data-route="/login">
+          <div class="hero">
+            <div><div class="breadcrumb">Auth / Login</div><h1>Sign in to TARS</h1><p>Normal provider login is the default path. Break-glass access stays folded as an exception path.</p></div>
+            <div class="toolbar"><a class="btn primary" href="#/setup">Continue with SSO</a><button class="btn">Use passkey</button></div>
+          </div>
+          <div class="grid-12">
+            <div class="card span-7">
+              <h2>Provider loading state</h2>
+              <p>Checking configured identity providers before showing auth choices. This avoids local_token race confusion.</p>
+              <div class="surface mt-4"><span class="chip teal">Loading State</span><p class="mt-2">Provider metadata loading, local token hidden until readiness resolves.</p></div>
+              <div class="grid-12 mt-4">
+                <div class="state span-4"><span class="chip green">setup ready</span><p>SSO and first admin configured.</p></div>
+                <div class="state span-4"><span class="chip amber">setup required</span><p>Route to first-run setup.</p></div>
+                <div class="state span-4"><span class="chip red">bootstrap error</span><p>Show retry and diagnostics link.</p></div>
+              </div>
+              <details class="mt-4"><summary>Break-glass token</summary><p class="mt-2">Emergency path requires explicit reason. No token value is displayed.</p><textarea class="field note mt-2" placeholder="Reason / note for audit"></textarea></details>
+            </div>
+            <div class="card span-5">
+              <h2>State prototypes</h2>
+              <div class="state-grid"><div class="state"><b>Empty State</b><p>No providers configured yet.</p></div><div class="state"><b>Error State</b><p>Provider discovery failed.</p></div><div class="state"><b>Degraded State</b><p>Passkey disabled.</p></div><div class="state"><b>Disabled State</b><p>Break-glass not configured.</p></div></div>
+            </div>
+          </div>
+          <div class="sticky-actions"><a class="btn primary" href="#/setup">Continue</a><button class="btn">Retry</button></div>
+        </article>
+
+        <article class="page" id="route-setup" data-route="/setup">
+          <div class="hero"><div><div class="breadcrumb">Bootstrap / First run</div><h1>Setup</h1><p>Five-step first-run wizard: admin, auth, provider access, channel delivery, complete.</p></div><div class="toolbar"><a class="btn primary" href="#/runtime-checks">Complete setup</a><button class="btn">Save draft</button></div></div>
+          <div class="grid-12">
+            <div class="card span-8">
+              <h2>Wizard steps</h2>
+              <div class="grid-12">
+                <div class="surface span-4"><span class="chip green">1 Admin</span><p>Why: establish accountable owner.</p><p>Readiness: primary admin verified.</p><p>Next: configure auth.</p></div>
+                <div class="surface span-4"><span class="chip teal">2 Auth</span><p>Why: protect console access.</p><p>Readiness: SSO reachable.</p><p>Next: provider access.</p></div>
+                <div class="surface span-4"><span class="chip amber">3 Provider</span><p>Why: diagnosis requires model access.</p><p>Readiness: model discovery pending.</p><p>Next: channel delivery.</p></div>
+                <div class="surface span-6"><span class="chip slate">4 Channel</span><p>Structured selection: Web, Slack, Telegram. No CSV input.</p></div>
+                <div class="surface span-6"><span class="chip slate">5 Complete</span><p>Run checks, then enter Sessions. Agent Role model binding is not part of setup.</p></div>
+              </div>
+            </div>
+            <aside class="card span-4"><h2>Readiness</h2><p>SetupFeatures: diagnosis enabled, approval enabled, execution gated, knowledge ingest [future data].</p><div class="actions mt-4"><a class="btn primary" href="#/runtime-checks">Run checks</a><button class="btn">Request help</button></div></aside>
+          </div>
+          <div class="sticky-actions"><a class="btn primary" href="#/runtime-checks">Run checks</a><button class="btn">Back</button></div>
+        </article>
+
+        <article class="page" id="route-runtime-checks" data-route="/runtime-checks">
+          <div class="hero"><div><div class="breadcrumb">Bootstrap / Runtime Checks</div><h1>Runtime checks</h1><p>Health cards show what is ready, degraded, or failed and where to fix it.</p></div><div class="toolbar"><a class="btn primary" href="#/sessions">Open Sessions</a><button class="btn">Rerun checks</button></div></div>
+          <div class="grid-12">
+            <div class="card span-4"><h2>Auth</h2><span class="chip green">healthy</span><p>SSO, passkey, admin posture ready.</p></div>
+            <div class="card span-4"><h2>Providers</h2><span class="chip amber">degraded</span><p>Assist model unreachable. <a class="badge warning" href="#/providers">Fix provider</a></p></div>
+            <div class="card span-4"><h2>Connectors</h2><span class="chip green">healthy</span><p>SSH, VictoriaMetrics, VictoriaLogs probe passed.</p></div>
+            <div class="card span-4"><h2>Delivery</h2><span class="chip red">failed</span><p>Telegram webhook rejected. <a class="badge critical" href="#/channels">Fix channel</a></p></div>
+            <div class="card span-4"><h2>Evidence Path</h2><span class="chip teal">analyzing</span><p>Metrics and logs linked; traces [future data].</p></div>
+            <div class="card span-4"><h2>Approval Gate</h2><span class="chip green">healthy</span><p>Risk policy requires approval for restart commands.</p></div>
+          </div>
+          <div class="sticky-actions"><a class="btn primary" href="#/sessions">Open Sessions</a><a class="btn" href="#/ops">Repair</a></div>
+        </article>
+
+        <article class="page" id="route-runtime" data-route="/runtime">
+          <div class="hero"><div><div class="breadcrumb">Runtime / Command Center</div><h1>Runtime command center</h1><p>Current judgment: human review is needed for one high-risk incident and two pending executions.</p></div><div class="toolbar"><a class="btn primary" href="#/sessions">Review Incidents</a><a class="btn" href="#/executions">Open Runs</a></div></div>
+          <div class="grid-12">
+            <div class="card span-3 kpi"><div><p>Active sessions</p><strong>7</strong></div><span class="chip amber">open</span></div>
+            <div class="card span-3 kpi"><div><p>Pending approvals</p><strong>2</strong></div><span class="chip amber">pending</span></div>
+            <div class="card span-3 kpi"><div><p>Provider failures</p><strong>1</strong></div><span class="chip red">failed</span></div>
+            <div class="card span-3 kpi"><div><p>Signal posture</p><strong>partial</strong></div><span class="chip amber">degraded</span></div>
+            <div class="card span-6"><h2>Incident queue</h2><div class="card compact queue-card critical"><div><strong>Checkout p95 latency doubled</strong><p>Conclusion points to postgres lock waits. Next: inspect blocking transaction.</p><div class="meta"><span>svc/checkout</span><span>host db-03</span><span>updated 4m ago</span></div></div><a class="btn" href="#/sessions/:id">Open</a></div></div>
+            <div class="card span-6"><h2>Execution queue</h2><div class="card compact queue-card"><div><strong>Restart checkout-worker on app-17</strong><p>Approved policy requires human reason before execution.</p><div class="meta"><span>risk warning</span><span>pending approval</span></div></div><a class="btn" href="#/executions/:id">Review</a></div></div>
+          </div>
+        </article>
+
+        <article class="page" id="route-sessions" data-route="/sessions">
+          <div class="hero"><div><div class="breadcrumb">Runtime / Sessions</div><h1>Sessions</h1><p>Diagnosis queue sorted by triage: conclusion, evidence, risk, next action.</p></div><div class="toolbar"><a class="btn primary" href="#/sessions/:id">Open top incident</a><button class="btn">Export handoff</button></div></div>
+          <div class="filter-bar"><select class="field"><option>Triage sort</option></select><select class="field"><option>State: open + pending</option></select><input class="field" value="service:checkout"></div>
+          <div class="grid-12">
+            <div class="card span-8 queue-card critical"><div><span class="badge critical">critical risk</span><h2>Checkout latency likely caused by postgres lock waits</h2><p>Evidence: p95 +142%, DB lock wait log bursts, trace span `checkout.authorize` slowed after release rel-2481.</p><p><b>Next action:</b> inspect blocking transaction and approve controlled worker restart only if lock wait clears.</p><div class="meta"><span class="mono">session_id SES-1048</span><span>svc/checkout</span><span>db-03</span><span>updated 4m ago</span><span class="chip amber">pending approval</span></div></div><a class="btn primary" href="#/sessions/:id">Open</a></div>
+            <div class="card span-4"><h2>Console error state</h2><p>Sessions smoke fatal error check is visible here, with console/pageerror capture rather than silent empty data.</p><div class="state mt-3"><b>Error State</b><p>API returned 500 while loading sessions. Retry or open Ops diagnostics.</p></div></div>
+            <div class="card span-6 queue-card teal"><div><span class="badge warning">warning</span><h2>Payments queue lag recovering</h2><p>Evidence: lag down from 19k to 3k; no execution needed.</p><div class="meta"><span class="chip teal">verifying</span><span>updated 11m ago</span></div></div><button class="btn">Open</button></div>
+            <div class="card span-6"><h2>Empty State</h2><p>No resolved sessions match the current filter. Clear filters to see historical incidents.</p></div>
+          </div>
+          <div class="sticky-actions"><a class="btn primary" href="#/sessions/:id">Open top</a><button class="btn">Filter</button></div>
+        </article>
+
+        <article class="page" id="route-session-detail" data-route="/sessions/:id">
+          <div class="hero"><div><div class="breadcrumb">Runtime / Sessions / SES-1048</div><h1>Checkout latency diagnosis</h1><p>Current diagnosis: postgres lock waits amplified checkout latency after release rel-2481.</p></div><div class="toolbar"><a class="btn primary" href="#/executions/:id">Review execution</a><a class="btn" href="#/audit">Audit trace</a></div></div>
+          <div class="grid-12">
+            <div class="span-8">
+              <div class="card"><h2>Golden path</h2><div class="grid-12"><div class="surface span-6"><h3>Conclusion</h3><p>Blocking transaction on db-03 is the most likely cause.</p></div><div class="surface span-3"><h3>Risk</h3><span class="badge critical">critical</span></div><div class="surface span-3"><h3>Next step</h3><p>Approve read-only DB inspection.</p></div></div></div>
+              <div class="card mt-4"><h2>Evidence summary</h2><div class="evidence-row"><span class="badge evidence">metrics</span><p>checkout p95 420ms -> 1.1s, error rate stable.</p><span class="chip teal">linked</span></div><div class="evidence-row"><span class="badge evidence">logs</span><p>lock wait warnings burst on db-03 after rel-2481.</p><span class="chip teal">linked</span></div><div class="evidence-row"><span class="badge evidence">traces</span><p>span `checkout.authorize` dominates critical path [future data].</p><span class="chip amber">partial</span></div><div class="evidence-row"><span class="badge evidence">change</span><p>release rel-2481 touched checkout authorization query.</p><span class="chip teal">linked</span></div><div class="evidence-row"><span class="badge evidence">execution</span><p>EXE-7781 awaits approval for controlled inspection.</p><a class="btn" href="#/executions/:id">Open</a></div></div>
+              <details class="mt-4"><summary>Raw Payload Fold</summary><pre>{ "session_id": "SES-1048", "alert": {"service": "checkout"}, "tool_plan": [{"tool": "victoria_metrics.query"}] }</pre></details>
+            </div>
+            <aside class="span-4 drawer">
+              <div class="card"><h2>Timeline</h2><div class="timeline"><div class="timeline-item"><span class="mono">08:14</span><p>Alert opened from latency SLO.</p></div><div class="timeline-item"><span class="mono">08:16</span><p>AI diagnosis completed.</p></div><div class="timeline-item"><span class="mono">08:18</span><p>Execution approval requested.</p></div></div></div>
+              <div class="card mt-4"><h2>Detail Drawer</h2><p>Audit, knowledge, notifications, and linked executions stay close to the incident.</p></div>
+            </aside>
+          </div>
+          <div class="sticky-actions"><a class="btn primary" href="#/executions/:id">Review action</a><a class="btn" href="#/audit">Audit</a></div>
+        </article>
+
+        <article class="page" id="route-executions" data-route="/executions">
+          <div class="hero"><div><div class="breadcrumb">Runtime / Executions</div><h1>Executions</h1><p>Approval and run queue sorted by triage. Approved is distinct from pending approval.</p></div><div class="toolbar"><a class="btn primary" href="#/executions/:id">Review pending</a><button class="btn">Export</button></div></div>
+          <div class="filter-bar"><select class="field"><option>Triage sort</option></select><select class="field"><option>Status: pending, executing, failed</option></select></div>
+          <div class="grid-12"><div class="card span-8 queue-card"><div><span class="badge warning">warning risk</span><h2>Read blocking transaction on db-03</h2><p>Reason: confirm diagnosis before controlled restart. Approval: pending human reason.</p><div class="meta"><span class="chip amber">pending</span><span class="mono">EXE-7781</span><span>target db-03</span></div></div><a class="btn primary" href="#/executions/:id">Review</a></div><div class="card span-4"><h2>Console error state</h2><p>Executions smoke fatal error renders as API error with retry, not blank queue.</p></div></div>
+          <div class="sticky-actions"><a class="btn primary" href="#/executions/:id">Review</a><button class="btn">Sort</button></div>
+        </article>
+
+        <article class="page" id="route-execution-detail" data-route="/executions/:id">
+          <div class="hero"><div><div class="breadcrumb">Runtime / Executions / EXE-7781</div><h1>Review controlled DB inspection</h1><p>Action -> reason -> risk -> approval -> result -> observation suggestion.</p></div><div class="toolbar"><button class="btn primary" onclick="showApproval('approve')">Approve</button><button class="btn" onclick="showApproval('context')">Request context</button><button class="btn danger" onclick="showApproval('reject')">Reject</button></div></div>
+          <div class="grid-12">
+            <div class="card span-7"><h2>Execution review</h2><div class="grid-12"><div class="surface span-6"><h3>Action</h3><p class="mono">psql -c "select pid, wait_event from pg_stat_activity..."</p></div><div class="surface span-6"><h3>Reason</h3><p>Confirm lock wait diagnosis before any restart.</p></div><div class="surface span-4"><h3>Risk</h3><span class="badge warning">warning</span></div><div class="surface span-4"><h3>Approval</h3><span class="chip amber">pending</span></div><div class="surface span-4"><h3>Result</h3><p>Not executed.</p></div><div class="surface span-12"><h3>Observation suggestion</h3><p>Watch checkout p95 and DB lock waits for 10 minutes after action.</p></div></div></div>
+            <aside class="card span-5" id="approval-dialog"><h2>Approval Dialog</h2><p>Choose approve, reject, or request context. A Reason / note is required for audit.</p><textarea class="field note mt-3" placeholder="Reason / note"></textarea><div class="actions mt-3"><button class="btn primary">Submit decision</button><a class="btn" href="#/sessions/:id">View session</a></div></aside>
+            <div class="span-12"><details><summary>Console output and raw transport</summary><pre>output_ref: s3://tars/executions/EXE-7781/output
+transport: ssh connector ssh-prod [secret redacted]
+full_payload: folded by default</pre></details></div>
+          </div>
+          <div class="sticky-actions"><button class="btn primary">Approve</button><button class="btn">Context</button><button class="btn danger">Reject</button></div>
+        </article>
+
+        <article class="page" id="route-chat" data-route="/chat">
+          <div class="hero"><div><div class="breadcrumb">Delivery / Chat</div><h1>Operations chat</h1><p>First-party web chat for incident work, with session and evidence context pinned.</p></div><div class="toolbar"><button class="btn primary">Start incident chat</button><a class="btn" href="#/sessions">Attach session</a></div></div>
+          <div class="grid-12"><div class="card span-8"><h2>Conversation</h2><div class="surface"><strong>TARS</strong><p>Current checkout incident has critical risk. Evidence links are pinned on the right.</p></div><div class="surface mt-2"><strong>Operator</strong><p>Draft an approval reason for DB inspection.</p></div></div><aside class="card span-4"><h2>Pinned evidence</h2><p>metrics, logs, trace sample [future data], audit chain.</p></aside></div>
+        </article>
+
+        <article class="page" id="route-inbox" data-route="/inbox">
+          <div class="hero"><div><div class="breadcrumb">Delivery / Inbox</div><h1>Inbox</h1><p>First-party delivery and approval reminders. Loading failures are explicit error states.</p></div><div class="toolbar"><button class="btn primary">Review pending</button><button class="btn">Mark read</button></div></div>
+          <div class="grid-12"><div class="card span-7"><h2>Pending approvals</h2><div class="surface"><span class="chip amber">pending</span><p>EXE-7781 needs approval reason for DB inspection.</p></div></div><div class="card span-5"><h2>Error State</h2><p>Inbox API failed. This is not shown as an empty inbox.</p><button class="btn mt-3">Retry load</button></div></div>
+        </article>
+
+        <article class="page" id="route-providers" data-route="/providers">
+          <div class="hero"><div><div class="breadcrumb">Delivery / Providers</div><h1>AI provider registry</h1><p>Provider health and model discovery. Agent Role binding belongs elsewhere.</p></div><div class="toolbar"><button class="btn primary">Add provider</button><button class="btn">Discover models</button></div></div>
+          <div class="card"><h2>Registry Table/Card</h2><table class="table"><tr><th>Provider</th><th>Health</th><th>Models</th><th>Usage</th></tr><tr><td>openai-primary</td><td><span class="chip green">healthy</span></td><td>gpt-5.4, gpt-5.4-mini</td><td>diagnosis primary</td></tr><tr><td>local-assist</td><td><span class="chip amber">degraded</span></td><td>[future data]</td><td>desense assist</td></tr></table></div>
+        </article>
+
+        <article class="page" id="route-channels" data-route="/channels">
+          <div class="hero"><div><div class="breadcrumb">Delivery / Channels</div><h1>Channel registry</h1><p>Structured first-party and external delivery entries. No CSV input.</p></div><button class="btn primary">Add channel</button></div>
+          <div class="grid-12"><div class="card span-6"><h2>First-party</h2><p>Web inbox, web chat, approval console.</p></div><div class="card span-6"><h2>External</h2><p>Slack, Telegram, webhook with typed fields and secret refs.</p></div></div>
+        </article>
+
+        <article class="page" id="route-notification-templates" data-route="/notification-templates">
+          <div class="hero"><div><div class="breadcrumb">Delivery / Notification Templates</div><h1>Notification templates</h1><p>Lifecycle, variable_schema, preview, and usage relationships.</p></div><button class="btn primary">Create template</button></div>
+          <div class="card"><table class="table"><tr><th>Name</th><th>Lifecycle</th><th>Variables</th></tr><tr><td>approval-request</td><td><span class="chip green">active</span></td><td class="mono">session_id, execution_id, risk</td></tr></table></div>
+        </article>
+
+        <article class="page" id="route-connectors" data-route="/connectors">
+          <div class="hero"><div><div class="breadcrumb">Platform / Connectors</div><h1>Connector registry</h1><p>SSH, VictoriaMetrics, and VictoriaLogs are first-class objects with real probe results.</p></div><a class="btn primary" href="#/connectors/:id">Open connector</a></div>
+          <div class="grid-12"><div class="card span-4"><h2>ssh-prod</h2><span class="chip green">healthy</span><p>Allowed hosts: 18. Secret ref set, no secret plaintext.</p></div><div class="card span-4"><h2>victoria-metrics-prod</h2><span class="chip green">healthy</span><p>Probe p95 184ms.</p></div><div class="card span-4"><h2>victoria-logs-prod</h2><span class="chip amber">degraded</span><p>Retention check partial.</p></div></div>
+        </article>
+
+        <article class="page" id="route-connector-detail" data-route="/connectors/:id">
+          <div class="hero"><div><div class="breadcrumb">Platform / Connectors / victoria-metrics-prod</div><h1>VictoriaMetrics connector</h1><p>Status, main config, verification, and usage relationships.</p></div><button class="btn primary">Run probe</button></div>
+          <div class="grid-12"><div class="card span-7"><h2>Probe results</h2><p>Query endpoint healthy. Latest successful probe at 2026-04-28T08:22:00+08:00.</p><details class="mt-4"><summary>Raw Payload Fold</summary><pre>{ "connector_id": "victoria-metrics-prod", "latency_ms": 184 }</pre></details></div><aside class="card span-5"><h2>Usage</h2><p>Sessions evidence, Observability summary, Runtime checks.</p></aside></div>
+        </article>
+
+        <article class="page" id="route-skills" data-route="/skills">
+          <div class="hero"><div><div class="breadcrumb">Platform / Skills</div><h1>Skill registry</h1><p>Lifecycle states and execution policy are visible before raw package detail.</p></div><a class="btn primary" href="#/skills/:id">Open skill</a></div>
+          <div class="card"><table class="table"><tr><th>Skill</th><th>Lifecycle</th><th>Policy</th></tr><tr><td>postgres-triage</td><td><span class="chip green">active</span></td><td>approval required for writes</td></tr><tr><td>release-correlator</td><td><span class="chip amber">review</span></td><td>read only</td></tr></table></div>
+        </article>
+
+        <article class="page" id="route-skill-detail" data-route="/skills/:id">
+          <div class="hero"><div><div class="breadcrumb">Platform / Skills / postgres-triage</div><h1>postgres-triage</h1><p>Execution policy, capability inputs, and audit posture.</p></div><button class="btn primary">Validate skill</button></div>
+          <div class="grid-12"><div class="card span-8"><h2>Policy</h2><p>Read-only inspection allowed; write and restart actions require approval.</p></div><aside class="card span-4"><h2>Lifecycle</h2><span class="chip green">active</span></aside></div>
+        </article>
+
+        <article class="page" id="route-automations" data-route="/automations">
+          <div class="hero"><div><div class="breadcrumb">Platform / Automations</div><h1>Automation registry</h1><p>Pattern delta: trigger is owned inside automation, not a standalone daily object.</p></div><button class="btn primary">Create automation</button></div>
+          <div class="card"><h2>Pattern delta</h2><p>List shows automation goal, trigger structure, approval policy, last run, and disabled/error states.</p></div>
+        </article>
+
+        <article class="page" id="route-extensions" data-route="/extensions">
+          <div class="hero"><div><div class="breadcrumb">Platform / Extensions</div><h1>Extension center</h1><p>Pattern delta: intake, validate, review, import.</p></div><button class="btn primary">Import extension</button></div>
+          <div class="card"><h2>Review queue</h2><p>Extensions show source, validation status, capability delta, and import risk.</p></div>
+        </article>
+
+        <article class="page" id="route-knowledge" data-route="/knowledge">
+          <div class="hero"><div><div class="breadcrumb">Platform / Knowledge</div><h1>Knowledge inventory</h1><p>Session-linked records, export, and stale-record review.</p></div><button class="btn primary">Export records</button></div>
+          <div class="card"><table class="table"><tr><th>Record</th><th>Session</th><th>Updated</th></tr><tr><td>Checkout lock wait diagnosis</td><td class="mono">SES-1048</td><td>8m ago</td></tr></table></div>
+        </article>
+
+        <article class="page" id="route-observability" data-route="/ops/observability">
+          <div class="hero"><div><div class="breadcrumb">Governance / Observability</div><h1>Observability summary</h1><p>Built-in metrics, logs, traces, and event profiling capability with explicit gaps.</p></div><button class="btn primary">Open trace sample</button></div>
+          <div class="grid-12"><div class="card span-3 kpi"><div><p>Logs 24h</p><strong>14k</strong></div><span class="chip green">healthy</span></div><div class="card span-3 kpi"><div><p>Errors 24h</p><strong>91</strong></div><span class="chip amber">warning</span></div><div class="card span-3 kpi"><div><p>Active traces</p><strong>18</strong></div><span class="chip teal">linked</span></div><div class="card span-3 kpi"><div><p>Profiling</p><strong>gap</strong></div><span class="chip slate">future data</span></div><div class="card span-12"><h2>Degraded State</h2><p>OTLP traces are enabled, but event profiling retention is not configured.</p></div></div>
+          <div class="sticky-actions"><button class="btn primary">Open traces</button><a class="btn" href="#/ops">Repair</a></div>
+        </article>
+
+        <article class="page" id="route-audit" data-route="/audit">
+          <div class="hero"><div><div class="breadcrumb">Governance / Audit</div><h1>Audit search</h1><p>Searchable and exportable audit chain for sessions, executions, approvals, and repairs.</p></div><div class="toolbar"><a class="btn primary" href="#/ops/observability">Observe after action</a><button class="btn">Export</button></div></div>
+          <div class="filter-bar"><input class="field" value="trace_id:TRC-9af2"><select class="field"><option>Action: approval_requested</option></select></div><div class="card"><table class="table"><tr><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th></tr><tr><td class="mono">08:18</td><td>tars-agent</td><td>approval_requested</td><td class="mono">EXE-7781</td></tr></table></div>
+        </article>
+
+        <article class="page" id="route-logs" data-route="/logs">
+          <div class="hero"><div><div class="breadcrumb">Governance / Logs</div><h1>Runtime logs</h1><p>Visible runtime logs search page; not a route-only placeholder.</p></div><button class="btn primary">Search logs</button></div>
+          <div class="card"><pre>2026-04-28T08:18:02+08:00 warning executor approval_required execution_id=EXE-7781 trace_id=TRC-9af2</pre></div>
+        </article>
+
+        <article class="page" id="route-outbox" data-route="/outbox">
+          <div class="hero"><div><div class="breadcrumb">Governance / Outbox</div><h1>Delivery rescue queue</h1><p>Failed and blocked delivery with copyable event id and expandable error detail.</p></div><button class="btn primary">Replay selected</button></div>
+          <div class="card"><div class="evidence-row"><span class="mono">evt_01HQ</span><p>approval notification blocked by channel auth.</p><button class="btn">Copy id</button></div><details><summary>Expandable error detail</summary><pre>last_error: 401 unauthorized; blocked_reason: channel secret missing</pre></details></div>
+        </article>
+
+        <article class="page" id="route-ops" data-route="/ops">
+          <div class="hero"><div><div class="breadcrumb">Ops / Repair Console</div><h1>Ops repair console</h1><p>Raw repair and dangerous actions are downshifted behind explicit confirmation.</p></div><button class="btn primary">Run diagnostics</button></div>
+          <div class="grid-12"><div class="card span-4"><h2>Secrets</h2><span class="chip amber">missing</span><p>Write-only inventory; values never displayed.</p></div><div class="card span-4"><h2>Outbox repair</h2><span class="chip red">blocked</span><p>Prefer `/outbox`; raw repair requires confirmation.</p></div><div class="card span-4"><h2>Advanced</h2><span class="chip slate">disabled</span><p>Destructive repair unavailable until operator confirms scope.</p></div><div class="card span-12"><details><summary>Raw repair payload</summary><pre>{ "repair": "reindex_knowledge", "confirm": "required" }</pre></details></div></div>
+          <div class="sticky-actions"><button class="btn primary">Diagnose</button><button class="btn danger">Confirm repair</button></div>
+        </article>
+
+        <article class="page" id="route-identity" data-route="/identity">
+          <div class="hero"><div><div class="breadcrumb">Identity</div><h1>IAM overview</h1><p>Auth posture with deep links to providers, users, groups, roles, agent roles, and people.</p></div><a class="btn primary" href="#/identity/users">Review users</a></div>
+          <div class="grid-12"><div class="card span-3"><h2>MFA</h2><span class="chip green">92%</span></div><div class="card span-3"><h2>Password login</h2><span class="chip amber">limited</span></div><div class="card span-3"><h2>Challenge</h2><span class="chip green">enabled</span></div><div class="card span-3"><h2>SSO</h2><span class="chip green">healthy</span></div></div>
+        </article>
+        <article class="page" id="route-identity-providers" data-route="/identity/providers"><div class="hero"><div><div class="breadcrumb">Identity / Providers</div><h1>Auth provider registry</h1><p>SSO provider state, callback health, and bootstrap posture.</p></div><button class="btn primary">Add auth provider</button></div><div class="card"><p>OIDC primary healthy; SAML backup disabled.</p></div></article>
+        <article class="page" id="route-identity-users" data-route="/identity/users"><div class="hero"><div><div class="breadcrumb">Identity / Users</div><h1>User registry</h1><p>MFA, challenge, and password-login security indicators.</p></div><button class="btn primary">Invite user</button></div><div class="card"><table class="table"><tr><th>User</th><th>MFA</th><th>Challenge</th></tr><tr><td>sre-primary</td><td><span class="chip green">enabled</span></td><td><span class="chip green">fresh</span></td></tr></table></div></article>
+        <article class="page" id="route-identity-groups" data-route="/identity/groups"><div class="hero"><div><div class="breadcrumb">Identity / Groups</div><h1>Group registry</h1><p>Ownership, membership, and approval-group usage.</p></div><button class="btn primary">Create group</button></div><div class="card"><p>oncall-primary owns high-risk approvals.</p></div></article>
+        <article class="page" id="route-identity-roles" data-route="/identity/roles"><div class="hero"><div><div class="breadcrumb">Identity / Roles</div><h1>Access role registry</h1><p>Access policy, scope, and assignment posture.</p></div><button class="btn primary">Create role</button></div><div class="card"><p>Operator, Approver, Auditor, Admin.</p></div></article>
+        <article class="page" id="route-identity-agent-roles" data-route="/identity/agent-roles"><div class="hero"><div><div class="breadcrumb">Identity / Agent Roles</div><h1>Agent role profile</h1><p>Model binding, capability binding, and policy binding belong here, not Setup.</p></div><button class="btn primary">Edit bindings</button></div><div class="card"><p>diagnosis-agent -> provider openai-primary -> read-only evidence tools -> approval policy.</p></div></article>
+        <article class="page" id="route-identity-people" data-route="/identity/people"><div class="hero"><div><div class="breadcrumb">Identity / People</div><h1>Contact and on-call profiles</h1><p>Org-owned contact profile with structured channel selection.</p></div><button class="btn primary">Add person</button></div><div class="card"><p>sre-primary receives Web Inbox + Slack. Phone escalation disabled.</p></div></article>
+        <article class="page" id="route-org" data-route="/org"><div class="hero"><div><div class="breadcrumb">Org</div><h1>Org, tenant, workspace, policy</h1><p>Quota and usage summary for organizational governance.</p></div><button class="btn primary">Review policy</button></div><div class="grid-12"><div class="card span-4"><h2>Tenants</h2><p>3 active</p></div><div class="card span-4"><h2>Workspaces</h2><p>12 active</p></div><div class="card span-4"><h2>Usage</h2><p>62% quota</p></div></div></article>
+        <article class="page" id="route-docs" data-route="/docs"><div class="hero"><div><div class="breadcrumb">Docs</div><h1>Documentation home</h1><p>On-call playbooks, setup guides, registry object model, and audit policies.</p></div><button class="btn primary">Open playbook</button></div><div class="card"><p>Docs links explain the product model without becoming the main console workflow.</p></div></article>
+        <article class="page" id="route-resolved-summary" data-route="/resolved-summary"><div class="hero"><div><div class="breadcrumb">Runtime / Resolved</div><h1>Resolved summary</h1><p>Incident outcome, evidence retained, audit exported, and knowledge record created.</p></div><a class="btn primary" href="#/knowledge">Open knowledge</a></div><div class="card"><p>Checkout p95 recovered after blocking transaction ended. No restart executed.</p></div></article>
+
+      </section>
+    </main>
+  </div>
+  <script>
+    const navGroups = {
+      Runtime: [["/login","Log in"],["/setup","Setup"],["/runtime-checks","Runtime checks"],["/runtime","Runtime"],["/sessions","Sessions"],["/sessions/:id","Session detail"],["/executions","Executions"],["/executions/:id","Execution detail"]],
+      Delivery: [["/chat","Chat"],["/inbox","Inbox"],["/providers","Providers"],["/channels","Channels"],["/notification-templates","Notification templates"]],
+      Platform: [["/connectors","Connectors"],["/connectors/:id","Connector detail"],["/skills","Skills"],["/skills/:id","Skill detail"],["/automations","Automations"],["/extensions","Extensions"],["/knowledge","Knowledge"]],
+      Governance: [["/ops/observability","Observability"],["/audit","Audit"],["/logs","Logs"],["/outbox","Outbox"],["/ops","Ops"]],
+      Identity: [["/identity","Identity"],["/identity/providers","Auth providers"],["/identity/users","Users"],["/identity/groups","Groups"],["/identity/roles","Roles"],["/identity/agent-roles","Agent roles"],["/identity/people","People"],["/org","Org"]],
+      Docs: [["/docs","Docs"]]
+    };
+    const nav = document.getElementById("nav");
+    Object.entries(navGroups).forEach(([group, links]) => {
+      const box = document.createElement("div");
+      box.className = "nav-group";
+      box.innerHTML = `<div class="nav-title">${group}</div>` + links.map(([route, label]) => `<a class="nav-link" data-nav="${route}" href="#${route}"><i data-lucide="chevron-right"></i>${label}</a>`).join("");
+      nav.appendChild(box);
+    });
+    const routeToId = {
+      "/login":"route-login","/setup":"route-setup","/runtime-checks":"route-runtime-checks","/runtime":"route-runtime","/":"route-runtime",
+      "/sessions":"route-sessions","/sessions/:id":"route-session-detail","/executions":"route-executions","/executions/:id":"route-execution-detail",
+      "/chat":"route-chat","/inbox":"route-inbox","/providers":"route-providers","/channels":"route-channels","/notification-templates":"route-notification-templates","/msg-templates":"route-notification-templates",
+      "/connectors":"route-connectors","/connectors/:id":"route-connector-detail","/skills":"route-skills","/skills/:id":"route-skill-detail","/automations":"route-automations","/extensions":"route-extensions","/knowledge":"route-knowledge",
+      "/ops/observability":"route-observability","/audit":"route-audit","/logs":"route-logs","/outbox":"route-outbox","/ops":"route-ops",
+      "/identity":"route-identity","/identity/providers":"route-identity-providers","/identity/users":"route-identity-users","/identity/groups":"route-identity-groups","/identity/roles":"route-identity-roles","/identity/agent-roles":"route-identity-agent-roles","/identity/people":"route-identity-people",
+      "/org":"route-org","/docs":"route-docs","/resolved-summary":"route-resolved-summary",
+      "/dashboard":"route-runtime","/auth":"route-identity-providers","/users":"route-identity-users","/groups":"route-identity-groups","/roles":"route-identity-roles","/people":"route-identity-people"
+    };
+    function renderRoute() {
+      const route = location.hash.replace(/^#/, "") || "/login";
+      const id = routeToId[route] || "route-login";
+      document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === id));
+      document.querySelectorAll(".nav-link").forEach(link => link.classList.toggle("active", link.dataset.nav === route));
+      document.getElementById("search-overlay").classList.remove("open");
+      if (window.lucide) window.lucide.createIcons();
+    }
+    function showApproval(mode) {
+      const dialog = document.getElementById("approval-dialog");
+      dialog.querySelector("p").textContent = `Decision mode: ${mode}. Reason / note is required and will be written to audit.`;
+    }
+    document.getElementById("theme-toggle").addEventListener("click", () => document.documentElement.classList.toggle("dark"));
+    document.getElementById("search-button").addEventListener("click", () => document.getElementById("search-overlay").classList.toggle("open"));
+    window.addEventListener("hashchange", renderRoute);
+    renderRoute();
+  </script>
+</body>
+</html>
