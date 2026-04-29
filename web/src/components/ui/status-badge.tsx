@@ -1,5 +1,6 @@
 import { Badge, type BadgeProps } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { getSharedTone } from "@/components/ui/shared-state"
 
 const statusVariantMap: Record<string, BadgeProps["variant"]> = {
   healthy: "success",
@@ -14,14 +15,14 @@ const statusVariantMap: Record<string, BadgeProps["variant"]> = {
   online: "success",
   valid: "success",
   info: "info",
-  open: "info",
-  pending: "info",
-  processing: "info",
-  executing: "info",
-  verifying: "info",
   analyzing: "info",
+  executing: "info",
+  processing: "info",
+  verifying: "info",
   reviewing: "info",
   warning: "warning",
+  open: "warning",
+  pending: "warning",
   degraded: "warning",
   pending_approval: "warning",
   timeout: "warning",
@@ -32,8 +33,8 @@ const statusVariantMap: Record<string, BadgeProps["variant"]> = {
   failed: "danger",
   rejected: "danger",
   missing: "danger",
-  disabled: "danger",
-  offline: "danger",
+  disabled: "muted",
+  offline: "muted",
   invalid: "danger",
 }
 
@@ -53,6 +54,7 @@ export function StatusBadge({
   return (
     <Badge
       variant={variant}
+      data-tone={getSharedTone(normalized)}
       className={cn("uppercase tracking-[0.14em] text-[0.68rem] font-bold", className)}
     >
       {displayLabel}
