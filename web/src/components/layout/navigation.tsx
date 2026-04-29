@@ -104,6 +104,13 @@ export function useNavigationGroups(): NavGroupDefinition[] {
         { id: 'org', path: '/org', labelKey: 'nav.org', icon: Building2, keywords: 'org tenant tenants organization 租户 组织' },
       ],
     },
+    {
+      id: 'docs',
+      labelKey: 'nav.group.overview',
+      routes: [
+        { id: 'docs', path: '/docs', labelKey: 'nav.docs', icon: BookOpenText, keywords: 'docs guides playbooks help 文档 指南 手册' },
+      ],
+    },
   ]
 
   return allGroups.map(group => ({

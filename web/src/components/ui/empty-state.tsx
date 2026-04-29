@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from 'react'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { StatePanel } from '@/components/ui/shared-state'
 
 export function EmptyState({
   icon: Icon,
@@ -18,6 +19,19 @@ export function EmptyState({
   loading?: boolean
   className?: string
 }) {
+  if (!loading) {
+    return (
+      <StatePanel
+        title={title}
+        description={description || ''}
+        tone="empty"
+        icon={Icon ? <Icon size={18} className="opacity-80" /> : undefined}
+        className={cn('items-center text-center', className)}
+        action={action}
+      />
+    )
+  }
+
   return (
     <div className={cn('flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-white/[0.02] px-6 py-14 text-center', className)}>
       {loading ? (

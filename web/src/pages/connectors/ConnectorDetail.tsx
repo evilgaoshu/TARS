@@ -18,7 +18,6 @@ import {
   Activity, 
   ChevronRight, 
   Code, 
-  FileJson, 
   History, 
   Play, 
   Power,
@@ -27,7 +26,6 @@ import {
   Download,
   Wand2,
   Settings2,
-  ChevronDown,
 } from 'lucide-react';
 import type { ConnectorExecutionResponse, ConnectorInvokeCapabilityResponse, ConnectorMetricsQueryResponse } from '../../lib/api/types';
 import { clsx } from 'clsx';
@@ -40,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/select';
 import { GuidedFormDialog } from '@/components/operator/GuidedFormDialog';
 import { ConnectorManifestEditor } from '@/components/operator/ConnectorManifestEditor';
+import { RawPayloadFold } from '@/components/ui/shared-state';
 import { normalizeConnectorManifest } from '@/lib/connector-samples';
 import { connectorProbeResultFromLifecycle, type ConnectorProbeResult } from '@/lib/connectors/probe-status';
 
@@ -487,15 +486,13 @@ export const ConnectorDetail = () => {
           </DetailSection>
         </div>
 
-        <details className="glass-card p-0 group overflow-hidden">
-          <summary className="px-5 py-4 flex justify-between items-center cursor-pointer bg-white/[0.02] list-none select-none">
-            <h3 className="m-0 text-text-muted flex items-center gap-2 text-base font-bold"><FileJson size={18} /> {t('connectors.detail.manifest.title')}</h3>
-            <ChevronDown size={18} className="text-text-muted group-open:rotate-180 transition-transform" />
-          </summary>
-          <div className="p-4 bg-black/40">
-            <pre className="text-[0.7rem] font-mono text-text-muted whitespace-pre-wrap leading-relaxed select-all m-0">{rawManifest}</pre>
-          </div>
-        </details>
+        <RawPayloadFold
+          title={t('connectors.detail.manifest.title')}
+          summary={t('connectors.detail.advanced.rawConfig')}
+          className="glass-card overflow-hidden p-0"
+        >
+          {rawManifest}
+        </RawPayloadFold>
 
         <GuidedFormDialog
           open={editorOpen}

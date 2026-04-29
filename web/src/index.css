@@ -2,117 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Geist font removed due to 404 on CDN. Using system stack for reliability. */
-
 :root {
-  /* Core Color System - Dark Mode (Default) */
-  --bg-base: #0a0c10;
-  --bg-surface: rgba(13, 17, 23, 0.8);
-  --bg-surface-solid: #0d1117;
-  --bg-surface-hover: rgba(22, 27, 34, 0.95);
-  
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --text-muted: #484f58;
-  
-  --primary: #f2b84b;
-  --primary-hover: #ffcf7a;
-  --primary-glow: rgba(242, 184, 75, 0.15);
-  
-  --success: #3fb950;
-  --warning: #d29922;
-  --danger: #f85149;
-  --info: #388bfd;
-  
-  --border-color: rgba(255, 255, 255, 0.1);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-  --focus-ring: 0 0 0 2px rgba(242, 184, 75, 0.3);
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+
+  /* On-call evidence desk tokens - dark default */
+  --bg-base: #111827;
+  --bg-surface: color-mix(in srgb, #17202d 88%, transparent);
+  --bg-surface-solid: #17202d;
+  --bg-surface-hover: #1f2a38;
+  --bg-panel-strong: #243140;
+
+  --text-primary: #e5edf0;
+  --text-secondary: #c3ced5;
+  --text-muted: #9aa7b2;
+
+  --primary: #32c7bd;
+  --primary-hover: #53d6cd;
+  --primary-glow: rgba(50, 199, 189, 0.16);
+  --evidence: #68a4ff;
+
+  --success: #63c886;
+  --warning: #f2b84b;
+  --danger: #ff7d75;
+  --info: #68a4ff;
+  --slate: #94a3b8;
+
+  --border-color: rgba(154, 167, 178, 0.22);
+  --glass-border: 1px solid rgba(154, 167, 178, 0.18);
+  --glass-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
+  --focus-ring: 0 0 0 2px rgba(50, 199, 189, 0.3);
 
   --sidebar-width: 280px;
-  --header-height: 56px;
+  --sidebar-rail-width: 72px;
+  --header-height: 64px;
+  --radius: 0.75rem;
+  --radius-button: 0.5rem;
+  --radius-chip: 0.375rem;
+  --space-dense-1: 0.5rem;
+  --space-dense-2: 0.75rem;
+  --space-dense-3: 1rem;
+  --space-roomy-1: 1rem;
+  --space-roomy-2: 1.5rem;
 
   /* Shadcn UI Overrides - Dark */
-  --background: 220 15% 5%;
-  --foreground: 210 20% 98%;
-  --card: 222 15% 8%;
-  --card-foreground: 210 20% 98%;
-  --popover: 222 15% 5%;
-  --popover-foreground: 210 20% 98%;
-  --primary-shadcn: 38 92% 61%;
-  --primary-foreground: 222 15% 5%;
-  --secondary: 222 15% 12%;
-  --secondary-foreground: 210 20% 98%;
-  --muted: 222 15% 12%;
-  --muted-foreground: 215 15% 65%;
-  --accent: 222 15% 15%;
-  --accent-foreground: 210 20% 98%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 20% 98%;
-  --border: 222 15% 12%;
-  --input: 222 15% 12%;
-  --ring: 38 92% 61%;
-  --radius: 0.8rem;
+  --background: 217 33% 10%;
+  --foreground: 196 24% 92%;
+  --card: 214 29% 13%;
+  --card-foreground: 196 24% 92%;
+  --popover: 214 29% 13%;
+  --popover-foreground: 196 24% 92%;
+  --primary-shadcn: 176 59% 49%;
+  --primary-foreground: 185 71% 11%;
+  --secondary: 212 24% 18%;
+  --secondary-foreground: 196 24% 92%;
+  --muted: 214 22% 20%;
+  --muted-foreground: 211 16% 69%;
+  --accent: 212 24% 18%;
+  --accent-foreground: 196 24% 92%;
+  --destructive: 4 100% 73%;
+  --destructive-foreground: 217 33% 10%;
+  --border: 214 18% 28%;
+  --input: 214 18% 28%;
+  --ring: 176 59% 49%;
 
   /* Card and Item variables */
-  --card-bg: rgba(13, 17, 23, 0.95);
-  --card-hover-bg: rgba(22, 27, 34, 1);
-  --card-shadow: 0 10px 40px -10px rgba(0,0,0,0.5), 0 0 1px 1px rgba(255,255,255,0.05);
-  --item-bg: rgba(255, 255, 255, 0.03);
-  --item-hover-bg: rgba(255, 255, 255, 0.06);
+  --card-bg: rgba(23, 32, 45, 0.96);
+  --card-hover-bg: rgba(31, 42, 56, 1);
+  --card-shadow: 0 10px 24px rgba(8, 15, 24, 0.18);
+  --item-bg: rgba(148, 163, 184, 0.08);
+  --item-hover-bg: rgba(148, 163, 184, 0.14);
   --glass-blur: blur(24px);
 }
 
 [data-theme="light"] {
-  --bg-base: #f4f6fa;
-  --bg-surface: rgba(255, 255, 255, 0.85);
-  --bg-surface-solid: #ffffff;
-  --bg-surface-hover: rgba(248, 250, 252, 0.9);
-  
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  
-  --primary: #d97706;
-  --primary-hover: #b45309;
-  --primary-glow: rgba(217, 119, 6, 0.15);
-  
-  --success: #059669;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --info: #0ea5e9;
-  
-  --border-color: rgba(15, 23, 42, 0.08);
-  --glass-border: 1px solid rgba(15, 23, 42, 0.08);
-  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
-  --focus-ring: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  --bg-base: #f6f3ec;
+  --bg-surface: color-mix(in srgb, #fffdf7 88%, transparent);
+  --bg-surface-solid: #fffdf7;
+  --bg-surface-hover: #f5f0e7;
+  --bg-panel-strong: #eef3f4;
+
+  --text-primary: #172026;
+  --text-secondary: #31414a;
+  --text-muted: #66737a;
+
+  --primary: #0f9f9a;
+  --primary-hover: #0c8884;
+  --primary-glow: rgba(15, 159, 154, 0.14);
+  --evidence: #2563eb;
+
+  --success: #2f855a;
+  --warning: #b7791f;
+  --danger: #c2413d;
+  --info: #2563eb;
+  --slate: #64748b;
+
+  --border-color: rgba(102, 115, 122, 0.24);
+  --glass-border: 1px solid rgba(102, 115, 122, 0.14);
+  --glass-shadow: 0 10px 24px rgba(23, 32, 38, 0.06);
+  --focus-ring: 0 0 0 2px rgba(15, 159, 154, 0.18);
 
   /* Shadcn UI Variables - Light */
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
+  --background: 43 47% 95%;
+  --foreground: 204 24% 12%;
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 204 24% 12%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary-shadcn: 38 92% 45%; /* TARS Light Amber */
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 38 92% 45%;
+  --popover-foreground: 204 24% 12%;
+  --primary-shadcn: 178 83% 34%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 190 19% 94%;
+  --secondary-foreground: 204 24% 12%;
+  --muted: 190 19% 94%;
+  --muted-foreground: 200 8% 46%;
+  --accent: 190 19% 94%;
+  --accent-foreground: 204 24% 12%;
+  --destructive: 2 53% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 190 13% 84%;
+  --input: 190 13% 84%;
+  --ring: 178 83% 34%;
 
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --card-hover-bg: rgba(255, 255, 255, 0.98);
-  --card-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 8px 24px -4px rgba(15, 23, 42, 0.03);
-  --item-bg: rgba(15, 23, 42, 0.02);
-  --item-hover-bg: rgba(15, 23, 42, 0.04);
+  --card-bg: rgba(255, 253, 247, 0.96);
+  --card-hover-bg: rgba(255, 255, 255, 1);
+  --card-shadow: 0 10px 24px rgba(23, 32, 38, 0.06);
+  --item-bg: rgba(100, 116, 139, 0.08);
+  --item-hover-bg: rgba(100, 116, 139, 0.14);
 }
 
 /* Base Styles */
@@ -127,7 +142,7 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.6;
@@ -140,15 +155,15 @@ body {
 
 [data-theme="dark"] body, :root:not([data-theme="light"]) body {
   background:
-    radial-gradient(circle at top left, rgba(242, 184, 75, 0.14), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(109, 198, 214, 0.12), transparent 24%),
-    linear-gradient(180deg, #101820 0%, #0c1318 100%);
+    radial-gradient(circle at top left, rgba(50, 199, 189, 0.12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(104, 164, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, #111827 0%, #121a25 100%);
 }
 
 [data-theme="light"] body {
   background-image: 
-    radial-gradient(at 0% 0%, rgba(217, 119, 6, 0.06) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(2, 132, 199, 0.06) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(15, 159, 154, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
 }
 
 /* Sidebar refinement */
@@ -192,6 +207,14 @@ body {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+.evidence-link {
+  color: var(--evidence);
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 .glass-card:hover {

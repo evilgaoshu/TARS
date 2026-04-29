@@ -91,6 +91,10 @@ describe('navigation groups', () => {
     expect(groups[1]?.id).toBe('delivery')
     expect(groups[2]?.id).toBe('platform')
     expect(groups[3]?.id).toBe('governance')
+    expect(groups[5]).toEqual({
+      id: 'docs',
+      routes: ['docs'],
+    })
 
     root.unmount()
     container.remove()
