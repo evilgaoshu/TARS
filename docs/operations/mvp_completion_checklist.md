@@ -104,7 +104,7 @@
 当前 EVI-19 补充证据说明：
 
 - `192.168.3.100` 已部署 runtime commit `61eab80f3e2628bd6cc3f27ef51462a67e0c85c7`。
-- `jumpserver-main` 的 API health probe 已通过，但实际 command job submission 仍返回 `403 permission_denied`（`命令执行已禁用`），因此本轮 full-go 使用受控 `ssh-main` fallback。
+- `jumpserver-main` 当前只证明了 API probe 可达；在 `192.168.3.100` 上实际 command job submission 仍返回 `403 permission_denied`（`命令执行已禁用`），因此运行态语义已收口为 `degraded: API probe succeeded; execution not yet verified`，本轮 full-go 继续使用受控 `ssh-main` fallback。
 - `ssh-main` against `192.168.3.9` 已完成 `alert -> diagnosis -> require_approval -> approval_accepted -> execution_completed -> verify_success -> resolved`。
 - EVI-19 resolved sample：session `811a30f4-8e3e-4ccc-8989-8af485a25c38`，execution `0f46f347-29c5-49b4-b01d-23d41ebb1253`，verification `success`，output spool `/data/tars-setup-lab/execution-output/0f46f347-29c5-49b4-b01d-23d41ebb1253-20260426T160848Z.log`。
 

@@ -376,7 +376,7 @@ make live-validate
   - `prometheus-main` 为 disabled
   - `observability-main` 现在改为真实 `observability_http` connector，默认查询共享 `vmalert`：`http://127.0.0.1:8880/api/v1/alerts`
   - `delivery-main` 现在改为真实 `delivery_github` connector，默认查询公共 GitHub 仓库 `https://github.com/VictoriaMetrics/VictoriaMetrics.git`
-  - `jumpserver-main` 作为 execution 默认主路径启用，但只有在 connector health 为 `healthy` 且 `connector/jumpserver-main/{access_key,secret_key}` 已设置时才会真正接管执行链；否则 workflow 会自动回退 `ssh`
+- `jumpserver-main` 作为 execution 候选路径保留，但只有在真实执行成功并记录 execution health 后才会真正接管执行链；API probe 成功只会记为 `degraded`（`jumpserver API probe succeeded; execution not yet verified`），因此 workflow 会继续优先选择健康的 `ssh-main`
   - `TARS_SKILLS_CONFIG_PATH=$TARS_REMOTE_BASE_DIR/team-shared/skills.shared.yaml` 已启用，官方 skill 会以持久化 Skill Registry 方式加载，而不是仅依赖 marketplace-only 的内存态
   - `TARS_AUTOMATIONS_CONFIG_PATH=$TARS_REMOTE_BASE_DIR/team-shared/automations.shared.yaml` 可用于共享测试环境的 automation registry 基线
   - 因此如果 ad-hoc planner 样本仍点名 `prometheus-main`，并不代表 runtime 自身不可用；这是当前测试环境下的 connector 选择顺序特征，做正式 metrics 附件验收时需要注意

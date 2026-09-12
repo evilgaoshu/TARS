@@ -29,6 +29,26 @@ func TestSelectExecutionRuntimeFallsBackToHealthySSHNativeConnector(t *testing.T
 	}
 }
 
+func TestSelectExecutionRuntimeSkipsJumpServerAPIOnlyHealth(t *testing.T) {
+	t.Parallel()
+
+	manager := writePostgresWorkflowRuntimeSelectionConnectorConfig(t)
+	if _, err := manager.RecordHealth("jumpserver-main", "healthy", "jumpserver API probe succeeded", time.Now().UTC()); err != nil {
+		t.Fatalf("record jumpserver health: %v", err)
+	}
+	if _, err := manager.RecordHealth("ssh-main", "healthy", "ssh credential probe passed", time.Now().UTC()); err != nil {
+		t.Fatalf("record ssh health: %v", err)
+	}
+
+	got := selectExecutionRuntime(manager)
+	if got.ConnectorID != "ssh-main" || got.Protocol != "ssh_native" || got.ExecutionMode != "ssh_native" {
+		t.Fatalf("expected ssh-main to remain selected when jumpserver only has API health, got %+v", got)
+	}
+	if got.Runtime == nil || got.Runtime.ConnectorID != "ssh-main" {
+		t.Fatalf("expected runtime metadata to stay on ssh-main, got %+v", got.Runtime)
+	}
+}
+
 func writePostgresWorkflowRuntimeSelectionConnectorConfig(t *testing.T) *connectors.Manager {
 	t.Helper()
 	configPath := filepath.Join(t.TempDir(), "connectors.yaml")
