@@ -35,7 +35,7 @@ jobs:
           git diff --exit-code -- examples/sudoku/fixtures.json
 
       - name: Behavior contract tests
-        run: node --test examples/sudoku/
+        run: node --test examples/sudoku/*.test.mjs
 
       - name: Independent fixture verification (Python)
         run: python3 examples/sudoku/verify_fixtures.py

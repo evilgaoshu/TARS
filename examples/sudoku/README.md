@@ -56,7 +56,7 @@ CI 另外执行 `git diff --exit-code -- examples/sudoku/fixtures.json` 保证�
 ### 2. 行为契约测试（43 例）
 
 ```bash
-node --test examples/sudoku/
+node --test examples/sudoku/*.test.mjs
 ```
 
 ```

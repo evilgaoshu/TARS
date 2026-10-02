@@ -66,7 +66,7 @@
 
 | 层 | 命令 | 覆盖 |
 |---|---|---|
-| 行为契约 | `node --test examples/sudoku/` | 行/列/宫冲突、正确完成、未填满、填满但有冲突、重置、题目格只读、输入/清除、新游戏、题目合法且唯一解（43 例） |
+| 行为契约 | `node --test examples/sudoku/*.test.mjs` | 行/列/宫冲突、正确完成、未填满、填满但有冲突、重置、题目格只读、输入/清除、新游戏、题目合法且唯一解（43 例） |
 | 独立复核 | `python3 examples/sudoku/verify_fixtures.py` | 与 JS 不同代码路径复核唯一解与合法性 |
 | 场景脚本 | `node examples/sudoku/e2e-scenario.mjs` | R2–R8 验收项逐条 PASS/FAIL + 观察值 |
 | 题面幂等 | `node examples/sudoku/generate-fixtures.mjs` 后 `git diff --exit-code` | 题面字节级可复现 |

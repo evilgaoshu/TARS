@@ -1,7 +1,7 @@
 /**
  * EVI-142 协作 DEV 交付的可复现测试用例（行/列/宫冲突、正确完成、未填满、重置、题目合法且唯一解）。
  *
- * 运行：node --test examples/sudoku/
+ * 运行：node --test examples/sudoku/*.test.mjs
  * 依赖：仅 Node 内置 node:test + node:assert，无需 npm install。
  *
  * 这些用例是「行为契约」，主 DEV 可以把同样的断言指向自己的 UI/状态模块；
