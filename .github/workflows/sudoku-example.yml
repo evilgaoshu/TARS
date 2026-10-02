@@ -1,0 +1,44 @@
+name: Sudoku Example
+
+# EVI-142: examples/sudoku 的自动测试入口。
+# 独立 workflow，不改动既有 mvp-checks.yml 的任何任务。
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'codex/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sudoku-checks:
+    name: Sudoku Example Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+
+      - name: Fixture determinism (regenerate + diff)
+        run: |
+          node examples/sudoku/generate-fixtures.mjs
+          git diff --exit-code -- examples/sudoku/fixtures.json
+
+      - name: Behavior contract tests
+        run: node --test examples/sudoku/
+
+      - name: Independent fixture verification (Python)
+        run: python3 examples/sudoku/verify_fixtures.py
+
+      - name: Scripted acceptance scenario
+        run: node examples/sudoku/e2e-scenario.mjs
